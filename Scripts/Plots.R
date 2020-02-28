@@ -6,7 +6,6 @@ source("./Scripts/Functions.R", echo = FALSE)
 
 ### Data comparison ----------------------------------------------------------
 path <- "~/Desktop/P8/SPY2000-2001"
-# path2 <- "/Volumes/Samsung_T5/highFrequencyData/Cleaned/"
 
 from <- as.POSIXct("2001-12-10 09:30:00")
 to <- as.POSIXct("2001-12-10 16:00:00")
@@ -19,7 +18,7 @@ dataPreprocessed <- read.csv("~/Desktop/P8/SpyPreprocessed.csv") %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F%T")) %>%
   dplyr::filter(Start >= from, Start <= to)
 
-dataCleaned <- read.csv("~/Desktop/P8/SpyCleaned.csv") %>%
+dataSync <- read.csv("~/Desktop/P8/SpySync.csv") %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %H:%M")) %>%
   dplyr::filter(Start >= from, Start <= to)
 
@@ -32,7 +31,7 @@ ggplot(data = dataRaw) +
     aes(x = Start, y = Price, colour = "Preprocessed")
   ) +
   geom_line(
-    data = dataCleaned, 
+    data = dataSync, 
     aes(x = Start, y = Price, colour = "Synchronized")
     ) +
   scale_colour_manual(

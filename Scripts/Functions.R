@@ -39,8 +39,8 @@ funPreprocessing <- function(path, nCores) {
   return(dat)
 }
 
-### Cleaning -----------------------------------------------------------------
-funCleaning <- function(data) {
+### Synchronizing ------------------------------------------------------------
+funSync <- function(data) {
   dat <- data %>%
     dplyr::group_by(Start) %>%
     dplyr::summarise(Price = sum(Volume*Price)/sum(Volume)) %>%
@@ -59,7 +59,7 @@ funCleaning <- function(data) {
 # colors <- hue_pal()(4)
 colors <- c("#fc8d62", "#779ecc", "#66c2a5", "#007e89", "#aec6cf")
 # show_col(colors) # Run to see colors
-DEr
+
 # Themes
 theme <- list(
   theme_minimal(),

@@ -33,16 +33,18 @@ ggplot(data = dataRaw) +
   ) +
   geom_line(
     data = dataCleaned, 
-    aes(x = Start, y = Price, colour = "Cleaned")
+    aes(x = Start, y = Price, colour = "Synchronized")
     ) +
   scale_colour_manual(
-    "", 
-    values = alpha(
-      c("Raw" = colors[1], "Preprocessed" = colors[2], "Cleaned" = colors[3]), 
-      1
+    "",
+    breaks = c("Raw", "Preprocessed", "Synchronized"),
+    values = c(
+      "Raw" = colors[3], 
+      "Preprocessed" = colors[2], 
+      "Synchronized" = colors[1]
     )
   ) +
-  scale_x_datetime(breaks = date_breaks("1 hour"),date_labels = "%H:%M") +
+  scale_x_datetime(breaks = date_breaks("1 hour"), date_labels = "%H:%M") +
   xlab("Time") +
   ylab("Price") +
   themeLegend

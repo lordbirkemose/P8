@@ -3,13 +3,13 @@ library(tidyverse)
 source("./Scripts/Functions.R", echo = FALSE)
 
 ### Preprocessing ------------------------------------------------------------
-path <- "/Volumes/Samsung_T5/highFrequencyData/SPY"
+path <- "~/SPY"
 
-dataPreprocessed <- funPreprocessing(path)
+dataPreprocessed <- funPreprocessing(path, 2)
 
 write.csv(
   dataPreprocessed,
-  "/Volumes/Samsung_T5/highFrequencyData/Cleaned/SpyPreprocessed.csv",
+  "~/Cleaned/SpyPreprocessed.csv",
   row.names = FALSE
 )
 
@@ -18,6 +18,6 @@ dataCleaned <- funCleaning(dataPreprocessed)
 
 write.csv(
   dataCleaned,
-  "/Volumes/Samsung_T5/highFrequencyData/Cleaned/SpyCleaned.csv",
+  "~/Cleaned/SpyCleaned.csv",
   row.names = FALSE
 )

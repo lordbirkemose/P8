@@ -84,5 +84,21 @@ funSync <- function(data) {
   return(dat)
 }
 
+### Get filtered SPY data ----------------------------------------------------
+funGetSPY <- function(from, to, fq) {
+  dat <- read.csv("./Data/SpyCleaned.gz") %>%
+    dplyr::mutate(Start = as.POSIXct(Start, format = "%Y%m%d %H:%M:%S")) %>%
+    dplyr::filter(
+      format(Start, "%F") >= from, 
+      format(Start, "%F") <= to
+    )
+}
 ### Realized Volatility ------------------------------------------------------
-funRV <- function(from, to, )
+
+test <- funGetSPY("2001-01-01", "2001-02-01")
+
+
+
+dat %>% dplyr::mutate(Start = as.POSIXct(Start, format = "%Y-%m-%d %H:%M:%S")) %>%
+format(.$Start, "%Y-%m-%d") %>% View()
+strptime(a, format = "%H:%M:%S")

@@ -2,14 +2,14 @@ library(tidyverse)
 library(magrittr)
 data <- as_tibble(read.csv("./SpyCleaned.csv"))
 
-real_vol <- function(x){
-  mean(diff(x)^2)
-}
-
 data %<>% mutate(Log.Price = log(Price),
                 Start = as.POSIXct(Start, format = "%F")) %>%
   group_by(Start) %>%
-  summarise(RV.Daily = real_vol(Log.Price)) %>%
+  summarise(RV.Daily = mean(diff(Log.Price)^2),
+            Mean.Price = mean(Log.Price),
+            Return = mean(diff(Log.Price)),
+            Positive.Return = max(c(Return, 0)),
+            Negative.Return = min(c(Return, 0)) ) %>%
   mutate(RV.Weekly  = zoo::rollmean(RV.Daily, k = 5, align = "right", fill = NA),
          RV.Monthly = zoo::rollmean(RV.Daily, k = 22, align = "right", fill = NA),
          RV.1.Ahead = dplyr::lag(RV.Daily)) %>%

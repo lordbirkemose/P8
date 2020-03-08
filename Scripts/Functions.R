@@ -78,27 +78,46 @@ funSync <- function(data) {
     dplyr::group_by(Start) %>%
     dplyr::summarise(Price = dplyr::last(Price)) %>%
     dplyr::mutate(Start = as.POSIXct(Start)) %>%
-    tidyr::complete(Start = seq(min(Start), max(Start), by = "1 min")) %>%
-    tidyr::fill(Price, .direction = "down")
+    tidyr::complete(
+      Start = seq(
+        from = (lubridate::floor_date(min(Start), "day") +
+                  lubridate::minutes(9*60+30)),
+        to = max(Start),
+        by = "1 min"
+      )
+    ) %>%
+    tidyr::fill(Price, .direction = "downup") %>%
+    dplyr::filter(
+      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600)
+    )
   
   return(dat)
 }
 
 ### Get filtered SPY data ----------------------------------------------------
 funGetSPY <- function(from, to, fq) {
+  # dataStart <- as.POSIXct("1994-01-04")
+  # fromRow <- (as.POSIXct(from, format = "%Y-%m-%d %H:%M%S") - dataStart) %>%
+  #   as.numeric(units = "days")*391
+  # toRow <- (as.POSIXct(to, format = "%Y-%m-%d") - dataStart) %>%
+  #   as.numeric(units = "days")*391
+
   dat <- read.csv("./Data/SpyCleaned.gz") %>%
-    dplyr::mutate(Start = as.POSIXct(Start, format = "%Y%m%d %H:%M:%S")) %>%
+    dplyr::mutate(Start = as.POSIXct(Start, format = "%Y-%m-%d %H:%M:%S")) %>%
     dplyr::filter(
-      format(Start, "%F") >= from, 
-      format(Start, "%F") <= to
+      Start >= as.POSIXct(from, format = "%Y-%m-%d"), 
+      Start <= as.POSIXct(to, format = "%Y-%m-%d")
     )
+
+  return(dat)
 }
-### Realized Volatility ------------------------------------------------------
 
-test <- funGetSPY("2001-01-01", "2001-02-01")
-
+test <- funGetSPY("2001-01-01", "2001-02-01", 1)
 
 
-dat %>% dplyr::mutate(Start = as.POSIXct(Start, format = "%Y-%m-%d %H:%M:%S")) %>%
-format(.$Start, "%Y-%m-%d") %>% View()
-strptime(a, format = "%H:%M:%S")
+seq(
+  as.POSIXct("2001-01-01 00:00:00", format = "%Y-%m-%d %H:%M:%S"), 
+  as.POSIXct("2001-01-01 01:00:00", format = "%Y-%m-%d %H:%M:%S"), 
+  by = "1 min"
+) %>%
+  cut(., breaks="5 min")

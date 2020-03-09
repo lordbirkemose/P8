@@ -5,7 +5,7 @@ data <- as_tibble(read.csv("./Data/SpyCleaned.gz"))
 data %<>% mutate(Log.Price = log(Price),
                  Start = as.POSIXct(Start, format = "%F") ) %>%
   group_by(Start) %>%
-  summarise(RV.Daily = mean(diff(Log.Price)^2),
+  summarise(RV.Daily = sum(diff(Log.Price)^2),
             Return = mean(diff(Log.Price)),
             Positive.Return = max(c(Return, 0)),
             Negative.Return = min(c(Return, 0)) ) %>%

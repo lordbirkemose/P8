@@ -4,8 +4,8 @@ library(Cairo)
 
 source("./Scripts/Functions.R", echo = FALSE)
 
-### Data comparison ----------------------------------------------------------
-path <- "~/Desktop/P8/SPY2000-2001"
+### Data comparison (WARNING: Needs raw data) --------------------------------
+path <- "~/Desktop/P8/SPY2000-2001" # Path to raw data
 
 from <- as.POSIXct("2001-12-10 09:30:00")
 to <- as.POSIXct("2001-12-10 16:00:00")
@@ -14,11 +14,11 @@ dataRaw <- funReadCsvFolder(path) %>%
   dplyr::select(Start, price) %>%
   dplyr::filter(Start >= from, Start <= to)
 
-dataPreprocessed <- read.csv("~/Desktop/P8/SpyPreprocessed.csv") %>%
+dataPreprocessed <- read.csv("./Data/SpyPreprocessed2000-2001.csv") %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F%T")) %>%
   dplyr::filter(Start >= from, Start <= to)
 
-dataSync <- read.csv("~/Desktop/P8/SpySync.csv") %>%
+dataSync <- read.csv("./Data/SpyCleaned.gz") %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %H:%M")) %>%
   dplyr::filter(Start >= from, Start <= to)
 
@@ -50,5 +50,35 @@ ggplot(data = dataRaw) +
 
 ggsave(
   file = paste0("./Plots/","dataComparison",".eps"),
+  width =  9, height = 3 , device = cairo_ps , dpi = 600
+)
+### Volatility signature plot ------------------------------------------------
+file <- "SPY_20081120.csv"
+# period <- c(1, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300)
+period <- c(1, seq(30, 1200, by = 30))
+
+VolSigPlotData <- parallel::mclapply(
+  period,
+  function(x) {
+    funXSecSync(x, file) %>%
+      dplyr::mutate(logPrice = log(Price)) %>%
+      dplyr::group_by() %>%
+      dplyr::summarise(
+        RV = sum(diff(logPrice)^2),
+        period = x
+      )
+  },
+  mc.cores = 2
+) %>%
+  do.call(rbind, .)
+
+ggplot(data = VolSigPlotData) +
+  geom_point(aes(x = period/60, y = RV), color = colors[3]) +
+  xlab("Sampling period (min)") +
+  ylab("Relized volatility") +
+  theme
+
+ggsave(
+  file = paste0("./Plots/","volSigPlot",".eps"),
   width =  9, height = 3 , device = cairo_ps , dpi = 600
 )

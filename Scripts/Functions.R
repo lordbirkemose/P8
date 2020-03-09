@@ -88,7 +88,7 @@ funSync <- function(data) {
     ) %>%
     tidyr::fill(Price, .direction = "downup") %>%
     dplyr::filter(
-      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600),
+      dplyr::between(as.numeric(format(Start, "%H:%M")), 0930, 1600),
       !chron::is.weekend(Start),
       !chron::is.holiday(Start)
     )
@@ -96,5 +96,47 @@ funSync <- function(data) {
   return(dat)
 }
 
+### Synchronizing with X sec period ------------------------------------------
+funXSecSync <- function(x, file) {
+  dat <- read.csv(paste0("./Data/", file)) %>%
+    dplyr::mutate(
+      Start = gsub(".*_|.csv.*", "",  file),
+      Start = as.POSIXct(paste0(Start, utcsec), format="%Y%m%d %H:%M:%S")
+    ) %>%
+    dplyr::select(-utcsec) %>%
+    dplyr::filter(
+      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600),
+      price != 0,
+      corr %in% c(NA, 0)) %>%
+    dplyr::mutate(cond = gsub(" ", "", .$cond)) %>%
+    dplyr::filter(cond %in% c(NA, "", "E", "F")) %>%
+    dplyr::mutate(mad = zoo::rollmean(price, 51, fill = NA)) %>%
+    dplyr::filter(abs(price - 10*mad) < 10*mad) %>%
+    dplyr::select(Start, Price = price, Volume = volume) %>%
+    dplyr::group_by(Start) %>%
+    dplyr::summarise(Price = sum(Volume*Price)/sum(Volume)) %>%
+    dplyr::mutate(Start = format(Start, "%F %H:%M:%S")) %>%
+    dplyr::group_by(Start) %>%
+    dplyr::summarise(Price = dplyr::last(Price)) %>%
+    dplyr::mutate(Start = as.POSIXct(Start)) %>%
+    tidyr::complete(
+      Start = seq(
+        from = (lubridate::floor_date(min(Start), "day") +
+                  lubridate::minutes(9*60+30)),
+        to = max(Start),
+        by = "1 sec"
+      )
+    ) %>%
+    tidyr::fill(Price, .direction = "downup") %>%
+    dplyr::filter(
+      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600),
+      !chron::is.weekend(Start),
+      !chron::is.holiday(Start)
+    ) %>%
+    group_by(Start = cut(Start, breaks = paste(x, "secs"))) %>%
+    summarise(Price = dplyr::last(Price))
+  
+  return(dat)
+}
 
 

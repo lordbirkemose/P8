@@ -78,27 +78,23 @@ funSync <- function(data) {
     dplyr::group_by(Start) %>%
     dplyr::summarise(Price = dplyr::last(Price)) %>%
     dplyr::mutate(Start = as.POSIXct(Start)) %>%
-    tidyr::complete(Start = seq(min(Start), max(Start), by = "1 min")) %>%
-    tidyr::fill(Price, .direction = "down")
+    tidyr::complete(
+      Start = seq(
+        from = (lubridate::floor_date(min(Start), "day") +
+                  lubridate::minutes(9*60+30)),
+        to = max(Start),
+        by = "1 min"
+      )
+    ) %>%
+    tidyr::fill(Price, .direction = "downup") %>%
+    dplyr::filter(
+      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600),
+      !chron::is.weekend(Start),
+      !chron::is.holiday(Start)
+    )
   
   return(dat)
 }
 
-### Get filtered SPY data ----------------------------------------------------
-funGetSPY <- function(from, to, fq) {
-  dat <- read.csv("./Data/SpyCleaned.gz") %>%
-    dplyr::mutate(Start = as.POSIXct(Start, format = "%Y%m%d %H:%M:%S")) %>%
-    dplyr::filter(
-      format(Start, "%F") >= from, 
-      format(Start, "%F") <= to
-    )
-}
-### Realized Volatility ------------------------------------------------------
-
-test <- funGetSPY("2001-01-01", "2001-02-01")
 
 
-
-dat %>% dplyr::mutate(Start = as.POSIXct(Start, format = "%Y-%m-%d %H:%M:%S")) %>%
-format(.$Start, "%Y-%m-%d") %>% View()
-strptime(a, format = "%H:%M:%S")

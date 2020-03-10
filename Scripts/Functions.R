@@ -71,6 +71,11 @@ funPreprocessing <- function(path, nCores) {
 
 ### Synchronizing ------------------------------------------------------------
 funSync <- function(data) {
+  dates <- data %>%
+    dplyr::mutate(Start = as.character(format(Start, "%F"))) %>%
+    dplyr::select(Start) %>%
+    unique()
+  
   dat <- data %>%
     dplyr::group_by(Start) %>%
     dplyr::summarise(Price = sum(Volume*Price)/sum(Volume)) %>%
@@ -89,16 +94,10 @@ funSync <- function(data) {
     tidyr::fill(Price, .direction = "downup") %>%
     dplyr::filter(
       dplyr::between(as.numeric(format(Start, "%H:%M")), 0930, 1600)
-    )
-  
-  dates <- data %>%
-    dplyr::mutate(Start = as.character(format(Start, "%F"))) %>%
-    dplyr::select(Start) %>%
-    unique()
-  
-  dat <- dat %>%
+    ) %>%
     dplyr::mutate(Date = as.character(format(Start, "%F"))) %>%
-    dplyr::filter(Date %in% dates$Start)
+    dplyr::filter(Date %in% dates$Start) %>%
+    dplyr::select(-Date)
   
   return(dat)
 }
@@ -144,4 +143,20 @@ funXSecSync <- function(x, file) {
   return(dat)
 }
 
-
+### RV direction indicators --------------------------------------------------
+## Average True Range
+funAverageTrueRange <- function(data) {
+  dat <- data %>%
+    dplyr::mutate(Start = format(Start, "%F")) %>%
+    dplyr::group_by(Start) %>%
+    dplyr::summarise(
+      High = max(Price),
+      Low = min(Price),
+      Close = lag(dplyr::last(Price)),
+      TR = max(High-Low, abs(High-Close), abs(Low-Close))
+    ) %>%
+    dplyr::mutate(
+      twoWeekATR = zoo::rollmean(TR, k = 10, align = "right", fill = NA)
+    ) %>%
+    dplyr::select(Start, twoWeekATR)
+}

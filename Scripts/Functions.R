@@ -1,5 +1,5 @@
 ### Packages -----------------------------------------------------------------
-library(tidyverse)
+library(magrittr)
 library(scales)
 
 ### Plots --------------------------------------------------------------------
@@ -10,25 +10,25 @@ colors <- c("#fc8d62", "#779ecc", "#66c2a5", "#007e89", "#aec6cf")
 
 # Themes
 theme <- list(
-  theme_minimal(),
-  theme(
-    panel.grid.major = element_line(), 
-    panel.grid.minor = element_line(),
-    panel.background = element_blank(), 
-    axis.line = element_line(colour = "black")
+  ggplot2::theme_minimal(),
+  ggplot2::theme(
+    panel.grid.major = ggplot2::element_line(), 
+    panel.grid.minor = ggplot2::element_line(),
+    panel.background = ggplot2::element_blank(), 
+    axis.line = ggplot2::element_line(colour = "black")
   )
 )
 themeLegend <- list(
-  theme_minimal(),
-  theme(
-    panel.grid.major = element_line(), 
-    panel.grid.minor = element_line(),
-    panel.background = element_blank(), 
-    axis.line = element_line(colour = "black"),
+  ggplot2::theme_minimal(),
+  ggplot2::theme(
+    panel.grid.major = ggplot2::element_line(), 
+    panel.grid.minor = ggplot2::element_line(),
+    panel.background = ggplot2::element_blank(), 
+    axis.line = ggplot2::element_line(colour = "black"),
     legend.position = "top" , 
     legend.justification = "left" , 
     legend.direction = "horizontal", 
-    legend.background = element_blank()
+    legend.background = ggplot2::element_blank()
   )
 )
 
@@ -88,10 +88,17 @@ funSync <- function(data) {
     ) %>%
     tidyr::fill(Price, .direction = "downup") %>%
     dplyr::filter(
-      dplyr::between(as.numeric(format(Start, "%H:%M")), 0930, 1600),
-      !chron::is.weekend(Start),
-      !chron::is.holiday(Start)
+      dplyr::between(as.numeric(format(Start, "%H:%M")), 0930, 1600)
     )
+  
+  dates <- data %>%
+    dplyr::mutate(Start = as.character(format(Start, "%F"))) %>%
+    dplyr::select(Start) %>%
+    unique()
+  
+  dat <- dat %>%
+    dplyr::mutate(Date = as.character(format(Start, "%F"))) %>%
+    dplyr::filter(Date %in% dates$Start)
   
   return(dat)
 }

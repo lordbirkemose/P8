@@ -10,7 +10,7 @@ path <- "~/Desktop/P8/SPY2000-2001" # Path to raw data
 from <- as.POSIXct("2001-12-10 09:30:00")
 to <- as.POSIXct("2001-12-10 16:00:00")
   
-dataRaw <- funReadCsvFolder(path) %>%
+dataRaw <- funReadCsvFolder(path, 2) %>%
   dplyr::select(Start, price) %>%
   dplyr::filter(Start >= from, Start <= to)
 
@@ -50,7 +50,7 @@ ggplot(data = dataRaw) +
 
 ggsave(
   file = paste0("./Plots/","dataComparison",".eps"),
-  width =  9, height = 3 , device = cairo_ps , dpi = 600
+  width =  9, height = 3.5 , device = cairo_ps , dpi = 600
 )
 ### Volatility signature plot ------------------------------------------------
 file <- "SPY_20081120.csv"

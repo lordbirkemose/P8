@@ -121,7 +121,7 @@ funXSecSync <- function(x, file) {
     dplyr::mutate(Start = as.POSIXct(Start)) %>%
     tidyr::complete(
       Start = seq(
-        from = (lubridate::floor_date(min(Start), "day") +
+        from = (lubridate::floor_date(Start, "day") +
                   lubridate::minutes(9*60+30)),
         to = max(Start),
         by = "1 sec"
@@ -129,9 +129,7 @@ funXSecSync <- function(x, file) {
     ) %>%
     tidyr::fill(Price, .direction = "downup") %>%
     dplyr::filter(
-      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600),
-      !chron::is.weekend(Start),
-      !chron::is.holiday(Start)
+      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600)
     ) %>%
     group_by(Start = cut(Start, breaks = paste(x, "secs"))) %>%
     summarise(Price = dplyr::last(Price))

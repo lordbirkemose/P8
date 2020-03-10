@@ -55,7 +55,7 @@ ggsave(
 ### Volatility signature plot ------------------------------------------------
 file <- "SPY_20081120.csv"
 # period <- c(1, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300)
-period <- c(1, seq(30, 1200, by = 30))
+period <- c(1:10, seq(30, 600, by = 30))
 
 VolSigPlotData <- parallel::mclapply(
   period,
@@ -73,9 +73,10 @@ VolSigPlotData <- parallel::mclapply(
   do.call(rbind, .)
 
 ggplot(data = VolSigPlotData) +
-  geom_point(aes(x = period/60, y = RV), color = colors[3]) +
-  xlab("Sampling period (min)") +
-  ylab("Relized volatility") +
+  geom_point(aes(x = period/60, y = RV), color = colors[2]) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  xlab("Sampling Period (min)") +
+  ylab("Realized Volatility") +
   theme
 
 ggsave(

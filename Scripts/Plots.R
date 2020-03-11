@@ -7,8 +7,8 @@ source("./Scripts/Functions.R", echo = FALSE)
 ### Data comparison (WARNING: Needs raw data) --------------------------------
 path <- "~/Desktop/P8/SPY2000-2001" # Path to raw data
 
-from <- as.POSIXct("2001-12-10 09:30:00")
-to <- as.POSIXct("2001-12-10 16:00:00")
+from <- as.POSIXct("2001-12-10 00:00:00")
+to <- as.POSIXct("2001-12-10 23:59:00")
   
 dataRaw <- funReadCsvFolder(path, 2) %>%
   dplyr::select(Start, price) %>%

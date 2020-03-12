@@ -1,5 +1,5 @@
 ### Packages -----------------------------------------------------------------
-library(tidyverse)
+library(magrittr)
 library(scales)
 
 ### Plots --------------------------------------------------------------------
@@ -10,25 +10,25 @@ colors <- c("#fc8d62", "#779ecc", "#66c2a5", "#007e89", "#aec6cf")
 
 # Themes
 theme <- list(
-  theme_minimal(),
-  theme(
-    panel.grid.major = element_line(), 
-    panel.grid.minor = element_line(),
-    panel.background = element_blank(), 
-    axis.line = element_line(colour = "black")
+  ggplot2::theme_minimal(),
+  ggplot2::theme(
+    panel.grid.major = ggplot2::element_line(), 
+    panel.grid.minor = ggplot2::element_line(),
+    panel.background = ggplot2::element_blank(), 
+    axis.line = ggplot2::element_line(colour = "black")
   )
 )
 themeLegend <- list(
-  theme_minimal(),
-  theme(
-    panel.grid.major = element_line(), 
-    panel.grid.minor = element_line(),
-    panel.background = element_blank(), 
-    axis.line = element_line(colour = "black"),
+  ggplot2::theme_minimal(),
+  ggplot2::theme(
+    panel.grid.major = ggplot2::element_line(), 
+    panel.grid.minor = ggplot2::element_line(),
+    panel.background = ggplot2::element_blank(), 
+    axis.line = ggplot2::element_line(colour = "black"),
     legend.position = "top" , 
     legend.justification = "left" , 
     legend.direction = "horizontal", 
-    legend.background = element_blank()
+    legend.background = ggplot2::element_blank()
   )
 )
 
@@ -71,6 +71,11 @@ funPreprocessing <- function(path, nCores) {
 
 ### Synchronizing ------------------------------------------------------------
 funSync <- function(data) {
+  dates <- data %>%
+    dplyr::mutate(Start = as.character(format(Start, "%F"))) %>%
+    dplyr::select(Start) %>%
+    unique()
+  
   dat <- data %>%
     dplyr::group_by(Start) %>%
     dplyr::summarise(Price = sum(Volume*Price)/sum(Volume)) %>%
@@ -88,10 +93,11 @@ funSync <- function(data) {
     ) %>%
     tidyr::fill(Price, .direction = "downup") %>%
     dplyr::filter(
-      dplyr::between(as.numeric(format(Start, "%H:%M")), 0930, 1600),
-      !chron::is.weekend(Start),
-      !chron::is.holiday(Start)
-    )
+      dplyr::between(as.numeric(format(Start, "%H:%M")), 0930, 1600)
+    ) %>%
+    dplyr::mutate(Date = as.character(format(Start, "%F"))) %>%
+    dplyr::filter(Date %in% dates$Start) %>%
+    dplyr::select(-Date)
   
   return(dat)
 }
@@ -121,7 +127,7 @@ funXSecSync <- function(x, file) {
     dplyr::mutate(Start = as.POSIXct(Start)) %>%
     tidyr::complete(
       Start = seq(
-        from = (lubridate::floor_date(min(Start), "day") +
+        from = (lubridate::floor_date(Start, "day") +
                   lubridate::minutes(9*60+30)),
         to = max(Start),
         by = "1 sec"
@@ -129,9 +135,7 @@ funXSecSync <- function(x, file) {
     ) %>%
     tidyr::fill(Price, .direction = "downup") %>%
     dplyr::filter(
-      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600),
-      !chron::is.weekend(Start),
-      !chron::is.holiday(Start)
+      dplyr::between(as.numeric(format(Start, "%H%M")), 0930, 1600)
     ) %>%
     group_by(Start = cut(Start, breaks = paste(x, "secs"))) %>%
     summarise(Price = dplyr::last(Price))
@@ -139,4 +143,20 @@ funXSecSync <- function(x, file) {
   return(dat)
 }
 
-
+### RV direction indicators --------------------------------------------------
+## Average True Range
+funAverageTrueRange <- function(data) {
+  dat <- data %>%
+    dplyr::mutate(Start = format(Start, "%F")) %>%
+    dplyr::group_by(Start) %>%
+    dplyr::summarise(
+      High = max(Price),
+      Low = min(Price),
+      Close = lag(dplyr::last(Price)),
+      TR = max(High-Low, abs(High-Close), abs(Low-Close))
+    ) %>%
+    dplyr::mutate(
+      twoWeekATR = zoo::rollmean(TR, k = 10, align = "right", fill = NA)
+    ) %>%
+    dplyr::select(Start, twoWeekATR)
+}

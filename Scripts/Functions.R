@@ -1,12 +1,11 @@
 ### Packages -----------------------------------------------------------------
 library(magrittr)
-library(scales)
 
 ### Plots --------------------------------------------------------------------
 # Colors
-# colors <- hue_pal()(4)
+# colors <- scales::hue_pal()(4)
 colors <- c("#fc8d62", "#779ecc", "#66c2a5", "#007e89", "#aec6cf")
-# show_col(colors) # Run to see colors
+# scales::show_col(colors) # Run to see colors
 
 # Themes
 theme <- list(

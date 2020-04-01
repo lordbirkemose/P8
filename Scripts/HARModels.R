@@ -23,37 +23,21 @@ data %<>% mutate(Log.Price = log(Price),
   mutate(RV.Weekly  = rlmean(RV.Daily, k = 5),
          RV.Monthly = rlmean(RV.Daily, k = 22),
          RV.1.Ahead = dplyr::lag(RV.Daily),
-         J.Daily   = max(RV.Daily - BV.Daily, 0),
-         J.Weekly  = max(RV.Weekly  - rlmean(BV.Daily,  k = 5),  0),
-         J.Monthly = max(RV.Monthly - rlmean(BV.Daily , k = 22), 0)
+         Direction  = as.numeric( RV.Daily/dplyr::lag(RV.Daily) > 1),
+         J.Daily   = max(RV.Daily - BV.Daily, 0)
+         # J.Weekly  = max(RV.Weekly  - rlmean(BV.Daily,  k = 5),  0), Creates
+         # J.Monthly = max(RV.Monthly - rlmean(BV.Daily , k = 22), 0)  NAS
          ) %>%
-  # select(-Return) %>%
+  select(-Return) %>%
   drop_na(); data
 
 Base.HAR <- data %$% lm(RV.1.Ahead ~ RV.Daily + 
                                      RV.Weekly + 
                                      RV.Monthly)
-summary(Base.HAR)
 
-# The residual vs fitted plot has a megaphone shape indicating
-# we should regress |eps| ~ RV.1.Ahead to obtain w_{ii}'s as inverses
-# of fitted values
-# w <- data %$% lm( abs( residuals(Base.HAR) ) ~ RV.1.Ahead) %>%
-#   {1/predict(.)}
-# 
-# WLS.HAR <- data %$% lm(RV.1.Ahead ~ RV.Daily + 
-#                                     RV.Weekly + 
-#                                     RV.Monthly, weights = w)
-#
-# w <- 1/abs(predict(Base.HAR)) # Vi predicter en negativ observation 
-# WLS.RV.HAR <- data %$% lm(RV.1.Ahead ~ RV.Daily + 
-#                                     RV.Weekly + 
-#                                     RV.Monthly, weights = w)
-# 
-AR.HAR <- data %$% lm(RV.1.Ahead ~ RV.Daily +
-                                   RV.Weekly +
-                                   RV.Monthly +
-                                   Positive.Return +
-                                   Negative.Return +
-                                   J.Monthly)
-
+WLS.HAR.L.D <- data %$% lm(RV.1.Ahead ~ RV.Daily +
+                                        RV.Weekly +
+                                        RV.Monthly +
+                                        Positive.Return +
+                                        Negative.Return +
+                                        Direction , weights = 1/predict(Base.HAR))  

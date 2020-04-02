@@ -83,3 +83,42 @@ ggsave(
   file = paste0("./Plots/","volSigPlot",".eps"),
   width =  9, height = 3 , device = cairo_ps , dpi = 600
 )
+
+### Bid-Ask plot -------------------------------------------------------------
+library(lubridate)
+
+from <- as.POSIXct("2020-03-02 13:00:00")
+to <- as.POSIXct("2020-03-02 13:30:00")
+SPY <- as_tibble(read.csv("./Data/IVEtickbidask.txt")) %>%
+  mutate(Time = as.POSIXct(paste(Date,Time), format = "%d/%m/%Y %H:%M:%S")) %>%
+  filter(between(Time,from,to)) %>%
+  select(-c(Date, Size))
+
+ggplot(data = SPY) +
+  geom_step(
+    aes(x = Time, y = Bid, colour = "Bid")
+  ) +
+  geom_step(
+    data = SPY,
+    aes(x = Time, y = Ask, colour = "Ask")
+  ) +
+  geom_point(
+    data = SPY,
+    aes(x = Time, y = Price, colour = "Price")
+  ) +
+  scale_colour_manual(
+    "",
+    breaks = c("Bid", "Ask", "Price"),
+    values = c(
+      "Bid" = colors[3], 
+      "Ask" = colors[2], 
+      "Price" = colors[1]
+    )
+  ) +
+  ylab("Price") +
+  themeLegend
+
+ggsave(
+  file = paste0("./Plots/","bidAskBounce",".eps"),
+  width =  9, height = 3.5 , device = cairo_ps , dpi = 600
+)

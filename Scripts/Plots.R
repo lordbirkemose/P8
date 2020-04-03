@@ -1,6 +1,9 @@
 ### Packages -----------------------------------------------------------------
-library(tidyverse)
-library(Cairo)
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(lubridate)
+  library(Cairo)
+})
 
 source("./Scripts/Functions.R", echo = FALSE)
 
@@ -85,8 +88,6 @@ ggsave(
 )
 
 ### Bid-Ask plot -------------------------------------------------------------
-library(lubridate)
-
 from <- as.POSIXct("2020-03-02 13:00:00")
 to <- as.POSIXct("2020-03-02 13:30:00")
 SPY <- as_tibble(read.csv("./Data/IVEtickbidask.txt")) %>%
@@ -104,7 +105,8 @@ ggplot(data = SPY) +
   ) +
   geom_point(
     data = SPY,
-    aes(x = Time, y = Price, colour = "Price")
+    aes(x = Time, y = Price, colour = "Price"),
+    size = 0.5
   ) +
   scale_colour_manual(
     "",
@@ -113,6 +115,13 @@ ggplot(data = SPY) +
       "Bid" = colors[3], 
       "Ask" = colors[2], 
       "Price" = colors[1]
+    ),
+    guide = guide_legend(
+      override.aes = list(
+        linetype = c(1, 1, NA),
+        shape = c(NA, NA, 20)
+        # size = c(1, 1, 2)
+      )
     )
   ) +
   ylab("Price") +

@@ -1,5 +1,7 @@
 ### Packages -----------------------------------------------------------------
-library(magrittr)
+suppressPackageStartupMessages({
+  library(magrittr)
+})
 
 ### Plots --------------------------------------------------------------------
 # Colors

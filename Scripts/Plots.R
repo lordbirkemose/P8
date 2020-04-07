@@ -119,8 +119,8 @@ ggplot(data = SPY) +
     guide = guide_legend(
       override.aes = list(
         linetype = c(1, 1, NA),
-        shape = c(NA, NA, 20)
-        # size = c(1, 1, 2)
+        shape = c(NA, NA, 20),
+        size = c(.5, .5, 1.5)
       )
     )
   ) +

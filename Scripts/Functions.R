@@ -143,21 +143,3 @@ funXSecSync <- function(x, file) {
   
   return(dat)
 }
-
-### RV direction indicators --------------------------------------------------
-## Average True Range
-funAverageTrueRange <- function(data) {
-  dat <- data %>%
-    dplyr::mutate(Start = format(Start, "%F")) %>%
-    dplyr::group_by(Start) %>%
-    dplyr::summarise(
-      High = max(Price),
-      Low = min(Price),
-      Close = lag(dplyr::last(Price)),
-      TR = max(High-Low, abs(High-Close), abs(Low-Close))
-    ) %>%
-    dplyr::mutate(
-      twoWeekATR = zoo::rollmean(TR, k = 10, align = "right", fill = NA)
-    ) %>%
-    dplyr::select(Start, twoWeekATR)
-}

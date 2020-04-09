@@ -23,21 +23,31 @@ data %<>% mutate(Log.Price = log(Price),
   mutate(RV.Weekly  = rlmean(RV.Daily, k = 5),
          RV.Monthly = rlmean(RV.Daily, k = 22),
          RV.1.Ahead = dplyr::lag(RV.Daily),
+         BV.Weekly  = rlmean(BV.Daily, k = 5),
          Direction  = as.numeric( RV.Daily/dplyr::lag(RV.Daily) > 1),
-         J.Daily   = max(RV.Daily - BV.Daily, 0)
-         # J.Weekly  = max(RV.Weekly  - rlmean(BV.Daily,  k = 5),  0), Creates
-         # J.Monthly = max(RV.Monthly - rlmean(BV.Daily , k = 22), 0)  NAS
+         J.Daily   = pmax(RV.Daily - BV.Daily, 0),
+         J.Weekly  = pmax(RV.Monthly - rlmean(BV.Daily , k = 5), 0),
+         J.Monthly = pmax(RV.Monthly - rlmean(BV.Daily , k = 22), 0)
          ) %>%
   select(-Return) %>%
   drop_na(); data
 
-Base.HAR <- data %$% lm(RV.1.Ahead ~ RV.Daily + 
-                                     RV.Weekly + 
-                                     RV.Monthly)
-
-WLS.HAR.L.D <- data %$% lm(RV.1.Ahead ~ RV.Daily +
-                                        RV.Weekly +
-                                        RV.Monthly +
-                                        Positive.Return +
-                                        Negative.Return +
-                                        Direction , weights = 1/predict(Base.HAR))  
+# Base.HAR <- data %$% lm(RV.1.Ahead ~ RV.Daily + 
+#                                      RV.Weekly + 
+#                                      RV.Monthly)
+# 
+# WLS.HAR.L.D <- data %$% lm(RV.1.Ahead ~ RV.Daily +
+#                                         RV.Weekly +
+#                                         RV.Monthly +
+#                                         Positive.Return +
+#                                         Negative.Return +
+#                                         J.Daily +
+#                                         Direction , weights = 1/predict(Base.HAR))
+# 
+# OLS.HAR.L.J.D <- data %$% lm(RV.1.Ahead ~ RV.Daily +
+#                                           RV.Weekly +
+#                                           RV.Monthly +
+#                                           Positive.Return +
+#                                           Negative.Return +
+#                                           J.Daily +
+#                                           Direction)

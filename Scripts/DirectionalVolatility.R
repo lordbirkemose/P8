@@ -1,14 +1,10 @@
 ### Packages -----------------------------------------------------------------
 suppressPackageStartupMessages({
   library(magrittr)
+  library(randomForest)
 })
 
 source("./Scripts/Functions.R", echo = FALSE)
-
-### Data ---------------------------------------------------------------------
-data <- read.csv("./Data/SpyCleaned.gz") %>%
-  tibble::as_tibble() %>%
-  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T"))
 
 ### Indicators ---------------------------------------------------------------
 ## Average True Range
@@ -88,7 +84,7 @@ funAbsolutDailyReturn <- function(data) {
     dplyr::mutate(ADR = c(NA, abs(diff(logClose)))) %>%
     dplyr::select(Start, ADR)
 
-  rerun(dat)
+  return(dat)
 }
 
 ## Realized Vollatility Cyclicty
@@ -128,7 +124,7 @@ funBollingerBands <- function(data, k = 20) {
 }
 
 ## Fibonacci Ratio Realized Volatility
-funFibonacciRatioRV <- function(data, k) {
+funFibonacciRatioRV <- function(data, k = 20) {
   dat <- data %>%
     dplyr::mutate(Start = format(Start, "%F")) %>%
     dplyr::group_by(Start) %>%
@@ -155,7 +151,7 @@ funFibonacciRatioRV <- function(data, k) {
   return(dat)
 }
 
-## Exponential Movinf Average of Realised Volatility
+## Exponential Moving Average of Realised Volatility
 funExpMARV <- function(data, k = 25, lambda = 0.05) {
   dat <- data %>%
     dplyr::mutate(Start = format(Start, "%F")) %>%
@@ -208,7 +204,7 @@ funRelativeVigorIndex <- function(data, k) {
       HL1 = High - dplyr::lag(Low, n = 1),
       HL2 = High - dplyr::lag(Low, n = 2),
       HL3 = High - dplyr::lag(Low, n = 3),
-      V = (CO0 + 2*(CO1 + CO2) + CO3)/(HL0 + 2*(HL1 + HL2) + HL3),
+      V = (CO0 + 2*(CO1 + CO2) + CO3)/(HL0 + 2*(HL1 + HL2) + HL3 + .Machine$double.eps),
       RVI = zoo::rollmeanr(V, k = k, fill = NA)
     ) %>%
     dplyr::select(Start, V, RVI)
@@ -255,26 +251,91 @@ funCommodityChannelIndex <- function(data, k = 20) {
     dplyr::summarise(
       High = max(Price),
       Low = min(Price),
-      Close = dplyr::last(Price),
-      meanPrice = mean(Price)
+      Close = dplyr::last(Price)
     ) %>%
     dplyr::mutate(
       TP = (Close + High + Low)/3,
       MATP = zoo::rollmeanr(TP, k = k, fill = NA),
-      MA = zoo::rollmeanr(meanPrice, k = k, fill = NA),
-      TP_MA_diff = TP - MA
-    ) %>%
-    dplyr::mutate(
-      MD = zoo::rollapplyr(
-        data = .$TP_MA_diff,
-        width = k,
-        FUN = sum,
-        na.rm = TRUE,
-        fill = NA
-      ),
+      MD = TTR::runMAD(TP, n = k, center = MATP, stat = "mean"),
       CCI = (TP - MATP)/(0.015*MD)
     ) %>%
     dplyr::select(Start, CCI)
 
   return(dat)
 }
+
+## Realized volatility
+funDirectionalVolatility <- function(data, lag) {
+  dat <-  data %>%
+    dplyr::mutate(Start = format(Start, "%F")) %>%
+    dplyr::group_by(Start) %>%
+    dplyr::summarise(RV = sum(diff(log(Price))^2)) %>%
+    dplyr::mutate(RVDirection = as.numeric(RV/dplyr::lag(RV) > 1)) %>%
+    dplyr::select(Start, RVDirection, RV)
+
+  if(missing(lag)) {
+    return(dat)
+  } else if(lag < 0) {
+    dat %<>% dplyr::mutate(RVDirection = dplyr::lead(RVDirection, n = -lag))
+  } else {
+    dat %<>% dplyr::mutate(RVDirection = dplyr::lag(RVDirection, n = lag))
+  }
+}
+
+### Data ---------------------------------------------------------------------
+data <- read.csv("./Data/SpyCleaned.gz") %>%
+  tibble::as_tibble() %>%
+  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
+  dplyr::filter(Start <= "2007-09-30")
+
+indicators <- left_join_multi(
+  funDirectionalVolatility(data, lag = 1),
+  funAverageTrueRange(data),
+  funStochasticOscillator(data, k = 20),
+  funOpenCloseToDailyRange(data),
+  funVolatilityRatio(data, k = 10),
+  funAbsolutDailyReturn(data),
+  funRealizedVolatilityCyclicty(data),
+  funBollingerBands(data),
+  funFibonacciRatioRV(data),
+  funExpMARV(data),
+  funMovingAverageConvergenceDivergence(data),
+  funRelativeVigorIndex(data, k = 20),
+  funRelativeStrengthIndexRV(data, k = 5),
+  funCommodityChannelIndex(data),
+  by = "Start"
+) %>% stats::na.omit() %>% dplyr::mutate(RVDirection = as.factor(RVDirection))
+  
+dataTrain <- indicators %>%
+  dplyr::filter(Start <= "2005-06-30 16:00:00") %>%
+  dplyr::select(-Start)
+
+dataVali <- indicators %>%
+  dplyr::filter(Start > "2005-06-30") %>%
+  dplyr::select(-Start)
+
+### Random Forest ------------------------------------------------------------
+m <- sqrt(length(dataTrain) - 1) %>% round()
+
+set.seed(2020)
+mod <- randomForest(
+  RVDirection ~ .,
+  data = dataTrain,
+  ntree = 500,
+  mtry = m,
+  importance = TRUE
+)
+
+# Importence
+importance(mod)
+varImpPlot(mod)
+
+# In-sample results
+predTrain <- predict(mod, dataTrain, type = "class")
+mean(predTrain == dataTrain$RVDirection)
+table(predTrain, dataTrain$RVDirection)
+
+# Out-of-sample results
+predVali <- predict(mod, dataVali, type = "class")
+mean(predVali == dataVali$RVDirection)
+table(predVali, dataVali$RVDirection)

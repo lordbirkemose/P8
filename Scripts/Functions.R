@@ -143,3 +143,9 @@ funXSecSync <- function(x, file) {
   
   return(dat)
 }
+
+### Multiple left_join -------------------------------------------------------
+left_join_multi <- function(..., by) {
+  list(...) %>%
+    purrr::reduce(dplyr::left_join, by = by)
+}

@@ -131,3 +131,45 @@ ggsave(
   file = paste0("./Plots/","bidAskBounce",".eps"),
   width =  9, height = 3.5 , device = cairo_ps , dpi = 600
 )
+
+### Feature selection --------------------------------------------------------
+load("./Rdata/importanceFeatureSelection.Rdata")
+
+importanceFeatureSelection %<>%
+  data.frame() %>%
+  tibble::rownames_to_column() %>%
+  dplyr::select(
+    Indicator = rowname,
+    `Mean Decrease Accuracy` = MeanDecreaseAccuracy,
+    `Mean Decrease Gini` = MeanDecreaseGini
+  )
+
+ggplot(data = importanceFeatureSelection) +
+  geom_point(
+    aes(
+      x = `Mean Decrease Gini`, 
+      y = Indicator, 
+      color = "Mean Decrease Gini"
+    )
+  ) +
+  geom_point(
+    aes(
+      x = `Mean Decrease Accuracy`, 
+      y = Indicator, 
+      color = "Mean Decrease Acuracy"
+    )
+  ) +
+  scale_colour_manual(
+    "",
+    values = c(
+      colors[2],
+      colors[3]
+    )
+  ) +
+  xlab("Value") +
+  themeLegend
+
+ggsave(
+  file = paste0("./Plots/","featureSelection",".eps"),
+  width =  9, height = 3.5 , device = cairo_ps , dpi = 600
+)

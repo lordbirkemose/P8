@@ -202,8 +202,8 @@ funOpenCloseToDailyRange <- function(data) {
       Close = dplyr::last(Price),
       Open = dplyr::first(Price)
     ) %>%
-    dplyr::mutate(OCTFR = (Open - Close)/(High - Low)) %>%
-    dplyr::select(Start, OCTFR)
+    dplyr::mutate(OCTDR = (Open - Close)/(High - Low)) %>%
+    dplyr::select(Start, OCTDR)
   
   return(dat)
 }
@@ -424,4 +424,9 @@ funDirectionalVolatility <- function(data, lag) {
   } else {
     dat %<>% dplyr::mutate(RVDirection = dplyr::lag(RVDirection, n = lag))
   }
+}
+
+### Cross validation weight --------------------------------------------------
+funWeight <- function(n, lambda) {
+  exp(n*lambda)/sum(exp(n*lambda))
 }

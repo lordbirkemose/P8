@@ -135,28 +135,19 @@ ggsave(
 ### Feature selection --------------------------------------------------------
 load("./Rdata/importanceFeatureSelection.Rdata")
 
-importanceFeatureSelection %<>%
-  data.frame() %>%
-  tibble::rownames_to_column() %>%
-  dplyr::select(
-    Indicator = rowname,
-    `Mean Decrease Accuracy` = MeanDecreaseAccuracy,
-    `Mean Decrease Gini` = MeanDecreaseGini
-  )
-
 ggplot(data = importanceFeatureSelection) +
   geom_point(
     aes(
-      x = `Mean Decrease Gini`, 
+      x = MDA,
       y = Indicator, 
-      color = "Mean Decrease Gini"
+      color = "Mean Decrease Acuracy"
     )
   ) +
   geom_point(
     aes(
-      x = `Mean Decrease Accuracy`, 
-      y = Indicator, 
-      color = "Mean Decrease Acuracy"
+      x = MDG,
+      y = Indicator,
+      color = "Mean Decrease Impurity"
     )
   ) +
   scale_colour_manual(

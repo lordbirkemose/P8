@@ -31,50 +31,36 @@ dataModel <- data %>%
   ) %>%
   tidyr::drop_na()
 
-listDay <- lubridate::floor_date(dataModel$Start, unit = 'day') %>%
-  unique()
-
 # Rolling the model ----------------------------------------------------------
-rollFunction <- function(date, dat, target){
+funCrossValidation <- function(date, dat){
   train <- dat %>%
     dplyr::filter(Start < date)
-  test <- dat %>%
+  
+  vali <- dat %>%
     dplyr::filter(
-      Start <= date, 
+      Start > date, 
       Start <= date + lubridate::weeks(1)
     )
-
-  # model <- randomForest(
-  #   x = dplyr::select(train, -dplyr::one_of(target), -Start),
-  #   y = as.factor(x = train[[target]]),
-  #   ntree = 1000,
-  #   mtry = 14,
-  #   nodesize = 5,
-  #   importance = TRUE,
-  #   keep.inbag = TRUE,
-  #   corr.bias = TRUE,
-  #   type =  ''
-  # )
-
-  # result <- predict(model, newdata = test, type = "prob")
-
-  # test$result_up <- result[,2]
-  # test$result_down <- result[,1]
-
-  model <- lm(
-    RV.1.Ahead ~ RV.Daily + RV.Weekly + RV.Monthly + Positive.Return +
-      Negative.Return,
-    data = train
+  
+  mod <- randomForest::randomForest(
+    RVDirection ~ . - Start,
+    data = train,
+    ntree = 5000,
+    mtry = m,
+    # maxnodes = 20,
+    nodesize = 7
   )
-
-  test$result <- predict(model, newdata = test)
-
+  
+  pred <- predict(mod, newdata = vali, type = "class")
+  
+  oosError <- mean(pred == vali$RVDirection)
+  
   print(paste('Done:', date))
   
-  return(test)
+  return(oosError)
 }
 
-rolling <- unique(lubridate::floor_date(listDay, unit = 'week'))[-1] %>% 
-  # .[.>=(max(.)-lubridate::days(2*365))] %>% 
-  purrr::map(., rollFunction, dat=dataModel, target = 'RV.1.Ahead') %>%
-  do.call(rbind, .)
+crossValidationErrors <- unique(
+  lubridate::floor_date(data$Start, unit = 'week')
+)[-(1:10)] %>%
+  purrr::map_dfr(., funCrossValidation, dat = indicators)

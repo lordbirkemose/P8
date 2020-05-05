@@ -3,6 +3,7 @@ suppressPackageStartupMessages({
   library(magrittr)
   library(randomForest)
   library(lubridate)
+  library(xgboost)
 })
 
 source("./Scripts/Functions.R", echo = FALSE)
@@ -76,22 +77,23 @@ corData <- indicators %>%
   round(., 2) %>%
   replace(., upper.tri(.), "")
 
-### Feature selection --------------------------------------------------------
+### Feature selection data ----------------------------------------------------
 dataTrain <- indicators %>%
   dplyr::filter(Start <= "2005-06-30 16:00:00") %>%
-  dplyr::select(-Start, -FR1U, -FR2U, -FR1L, -FR2L, -FR3L)
+  dplyr::select(-FR1U, -FR2U, -FR1L, -FR2L, -FR3L)
 
 dataVali <- indicators %>%
   dplyr::filter(Start > "2005-06-30") %>%
-  dplyr::select(-Start, -FR1U, -FR2U, -FR1L, -FR2L, -FR3L)
+  dplyr::select(-FR1U, -FR2U, -FR1L, -FR2L, -FR3L)
 
+### Random Forest feature selection -------------------------------------------
 m <- sqrt(length(dataTrain) - 1)
 
 # RF for feature selection
 # Tuning in 'TuningBeforeFeatureImportance.R'
 set.seed(2020)
 modRFFeatureSelection <- randomForest::randomForest(
-  RVDirection ~ .,
+  RVDirection ~ . - Start,
   data = dataTrain,
   ntree = 5000,
   mtry = m,
@@ -139,33 +141,35 @@ dataMDG <- indicators %>%
     tidyr::one_of(indicatorsMDG$Indicator)
   )
 
-# Cross validation for MDA and MDG
+### Selection criterion -------------------------------------------------------
 # Tuning in 'TuningImportanceCriteria'
+# Best model:
 funCrossValidation <- function(date, dat){
   train <- dat %>%
     dplyr::filter(Start < date)
-
+  
   vali <- dat %>%
     dplyr::filter(
       Start > date, 
       Start <= date %m+% months(1)
     )
-
+  
+  set.seed(2020)
   mod <- randomForest::randomForest(
     RVDirection ~ . -Start,
     data = train,
     ntree = 5000,
-    mtry = m,
-    maxnodes = 17
+    mtry = 6,
+    maxnodes = 32
   )
-
+  
   pred <- stats::predict(mod, vali, type = "class")
-
+  
   oosError <- 1 - mean(pred == vali$RVDirection)
-
+  
   print(paste('Done:', date))
   
-  return(list("ossError" = oosError))
+  return(list("oosError" = oosError))
 }
 
 crossValidationErrorsMDA <- unique(
@@ -173,22 +177,20 @@ crossValidationErrorsMDA <- unique(
 )[-(1:10)] %>%
   purrr::map_dfr(., funCrossValidation, dat = dataMDA) %>%
   dplyr::mutate(
-    weightedOosError = ossError*funWeight(1:dplyr::n(), lambda = 0.01)
+    weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
   ) %>%
   dplyr::summarise(
-    oosError = mean(weightedOosError)
+    oosError = sum(weightedOosError)
   )
 
-
-
-# Final model
-predTrain <- stats::predict(modRFFeatureSelection, dataTrain, type = "class")
-mean(predTrain == dataTrain$RVDirection)
-table(predTrain, dataTrain$RVDirection)
-
-predVali <- stats::predict(modRFFeatureSelection, dataVali, type = "class")
-mean(predVali == dataVali$RVDirection)
-table(predVali, dataVali$RVDirection)
+### Combining criteria ---------------------------------------------------------
+indicatorsCombined <- importanceFeatureSelection %>%
+  dplyr::arrange(MDA) %>%
+  dplyr::mutate(MDAScore = 21:1) %>%
+  dplyr::arrange(MDG) %>%
+  dplyr::mutate(MDGScore = 21:1) %>%
+  dplyr::mutate(Score = MDAScore + MDGScore) %>%
+  dplyr::arrange(Score)
 
 ### Saving data --------------------------------------------------------------
 save(

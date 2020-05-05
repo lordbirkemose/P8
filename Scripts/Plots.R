@@ -164,3 +164,58 @@ ggsave(
   file = paste0("./Plots/","featureSelection",".eps"),
   width =  9, height = 3.5 , device = cairo_ps , dpi = 600
 )
+
+### Tuning importance criteria -----------------------------------------------
+load("./Rdata/TuningImportanceCriteria.Rdata")
+
+ggplot() +
+  geom_line(
+    data = tuningMaxnodesMDA,
+    aes(
+      x = maxnodes,
+      y = oosError,
+      color = "Mean Decrease Accuracy (max nodes)"
+    )
+  ) +
+  geom_line(
+    data = tuningMaxnodesMDG,
+    aes(
+      x = maxnodes, 
+      y = oosError,
+      color = "Mean Decrease Impurity (max nodes)"
+    )
+  ) +
+  geom_line(
+    data = tuningNodesizeMDA,
+    aes(
+      x = nodesize, 
+      y = oosError,
+      color = "Mean Decrease Accuracy (node size)"
+    )
+  ) +
+  geom_line(
+    data = tuningNodesizeMDG,
+    aes(
+      x = nodesize, 
+      y = oosError,
+      color = "Mean Decrease Impurity (node size)"
+    )
+  ) +
+  ylab("Validation Error") +
+  xlab("Value") +
+  scale_colour_manual(
+    "",
+    values = c(
+      colors[1],
+      colors[2],
+      colors[3],
+      colors[4]
+    )
+  ) +
+  guides(colour = guide_legend(nrow = 2)) +
+  themeLegend
+
+ggsave(
+  file = paste0("./Plots/","tuningImportanceCriteria",".eps"),
+  width =  9, height = 3.8 , device = cairo_ps , dpi = 600
+)

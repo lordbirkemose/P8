@@ -33,97 +33,7 @@ dataMDA <- left_join_multi(
 dataMDG <- dataMDA %>%
   dplyr::select(-ATR, -pctK)
 
-### Tuning -------------------------------------------------------------------
-mc.cores <- 40
-m <- sqrt(length(dataMDG) - 2)
-
-# Maxnodes
-funCrossValidationMaxnodes <- function(date, dat, maxnodes){
-  train <- dat %>%
-    dplyr::filter(Start < date)
-  
-  vali <- dat %>%
-    dplyr::filter(
-      Start > date, 
-      Start <= date %m+% months(1)
-    )
-  
-  mod <- randomForest::randomForest(
-    RVDirection ~ . -Start,
-    data = train,
-    ntree = 5000,
-    mtry = m,
-    maxnodes = maxnodes
-  )
-  
-  pred <- stats::predict(mod, vali, type = "class")
-  
-  oosError <- 1 - mean(pred == vali$RVDirection)
-  
-  # print(paste('Done:', date))
-  
-  return(list("ossError" = oosError))
-}
-
-tuningMaxnodesMDA <- parallel::mclapply(
-  2:500,
-  function(maxnodes) {
-    crossValidationErrors <- unique(
-      lubridate::floor_date(dataMDA$Start, unit = "month")
-    )[-(1:10)] %>%
-      purrr::map_dfr(
-        .,
-        funCrossValidationMaxnodes,
-        dat = dataMDA,
-        maxnodes = maxnodes
-      ) %>%
-      dplyr::mutate(
-        weightedOosError = ossError*funWeight(1:dplyr::n(), lambda = 0.01)
-      ) %>%
-      dplyr::summarise(
-        oosError = mean(weightedOosError)
-      )
-
-    print(paste("Max nodes:", maxnodes))
-
-    return(
-      list("maxnodes" = maxnodes, "ossError" = crossValidationErrors$oosError)
-    )
-  },
-  mc.cores = mc.cores
-) %>%
-  Reduce(rbind, .)
-
-tuningMaxnodesMDG <- parallel::mclapply(
-  2:500,
-  function(maxnodes) {
-    crossValidationErrors <- unique(
-      lubridate::floor_date(dataMDG$Start, unit = "month")
-    )[-(1:10)] %>%
-      purrr::map_dfr(
-        .,
-        funCrossValidationMaxnodes,
-        dat = dataMDG,
-        maxnodes = maxnodes
-      ) %>%
-      dplyr::mutate(
-        weightedOosError = ossError*funWeight(1:dplyr::n(), lambda = 0.01)
-      ) %>%
-      dplyr::summarise(
-        oosError = mean(weightedOosError)
-      )
-    
-    print(paste("Max nodes:", maxnodes))
-    
-    return(
-      list("maxnodes" = maxnodes, "ossError" = crossValidationErrors$oosError)
-    )
-  },
-  mc.cores = mc.cores
-) %>%
-  Reduce(rbind, .)
-
-# Nodesize
+### Functions ----------------------------------------------------------------
 funCrossValidationNodesize <- function(date, dat, nodesize){
   train <- dat %>%
     dplyr::filter(Start < date)
@@ -134,6 +44,7 @@ funCrossValidationNodesize <- function(date, dat, nodesize){
       Start <= date %m+% months(1)
     )
   
+  set.seed(2020)
   mod <- randomForest::randomForest(
     RVDirection ~ . -Start,
     data = train,
@@ -148,9 +59,101 @@ funCrossValidationNodesize <- function(date, dat, nodesize){
   
   # print(paste('Done:', date))
   
-  return(list("ossError" = oosError))
+  return(list("oosError" = oosError))
 }
 
+funCrossValidationMaxnodes <- function(date, dat, maxnodes){
+  train <- dat %>%
+    dplyr::filter(Start < date)
+  
+  vali <- dat %>%
+    dplyr::filter(
+      Start > date, 
+      Start <= date %m+% months(1)
+    )
+  
+  set.seed(2020)
+  mod <- randomForest::randomForest(
+    RVDirection ~ . -Start,
+    data = train,
+    ntree = 5000,
+    mtry = m,
+    maxnodes = maxnodes
+  )
+  
+  pred <- stats::predict(mod, vali, type = "class")
+  
+  oosError <- 1 - mean(pred == vali$RVDirection)
+  
+  # print(paste('Done:', date))
+  
+  return(list("oosError" = oosError))
+}
+
+### Tuning -------------------------------------------------------------------
+mc.cores <- 40
+m <- sqrt(length(dataMDG) - 2)
+
+# Maxnodes
+tuningMaxnodesMDA <- parallel::mclapply(
+  2:500,
+  function(maxnodes) {
+    crossValidationErrors <- unique(
+      lubridate::floor_date(dataMDA$Start, unit = "month")
+    )[-(1:10)] %>%
+      purrr::map_dfr(
+        .,
+        funCrossValidationMaxnodes,
+        dat = dataMDA,
+        maxnodes = maxnodes
+      ) %>%
+      dplyr::mutate(
+        weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
+      ) %>%
+      dplyr::summarise(
+        oosError = sum(weightedOosError)
+      )
+
+    print(paste("Max nodes:", maxnodes))
+
+    return(
+      list("maxnodes" = maxnodes, "oosError" = crossValidationErrors$oosError)
+    )
+  },
+  mc.cores = mc.cores
+) %>%
+  do.call(rbind, .)
+
+tuningMaxnodesMDG <- parallel::mclapply(
+  2:500,
+  function(maxnodes) {
+    crossValidationErrors <- unique(
+      lubridate::floor_date(dataMDG$Start, unit = "month")
+    )[-(1:10)] %>%
+      purrr::map_dfr(
+        .,
+        funCrossValidationMaxnodes,
+        dat = dataMDG,
+        maxnodes = maxnodes
+      ) %>%
+      dplyr::mutate(
+        weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
+      ) %>%
+      dplyr::summarise(
+        oosError = sum(weightedOosError)
+      )
+    
+    print(paste("Max nodes:", maxnodes))
+    
+    return(
+      list("maxnodes" = maxnodes, "oosError" = crossValidationErrors$oosError)
+    )
+  },
+  mc.cores = mc.cores
+) %>%
+  do.call(rbind, .)
+
+# Nodesize
 tuningNodesizeMDA <- parallel::mclapply(
   1:500,
   function(nodesize) {
@@ -164,16 +167,16 @@ tuningNodesizeMDA <- parallel::mclapply(
         nodesize = nodesize
       ) %>%
       dplyr::mutate(
-        weightedOosError = ossError*funWeight(1:dplyr::n(), lambda = 0.01)
+        weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
       ) %>%
       dplyr::summarise(
-        oosError = mean(weightedOosError)
+        oosError = sum(weightedOosError)
       )
     
     print(paste("Node size:", nodesize))
     
     return(
-      list("nodesize" = nodesize, "ossError" = crossValidationErrors$oosError)
+      list("nodesize" = nodesize, "oosError" = crossValidationErrors$oosError)
     )
   },
   mc.cores = mc.cores
@@ -193,16 +196,16 @@ tuningNodesizeMDG <- parallel::mclapply(
         nodesize = nodesize
       ) %>%
       dplyr::mutate(
-        weightedOosError = ossError*funWeight(1:dplyr::n(), lambda = 0.01)
+        weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
       ) %>%
       dplyr::summarise(
-        oosError = mean(weightedOosError)
+        oosError = sum(weightedOosError)
       )
     
     print(paste("Node size:", nodesize))
     
     return(
-      list("nodesize" = nodesize, "ossError" = crossValidationErrors$oosError)
+      list("nodesize" = nodesize, "oosError" = crossValidationErrors$oosError)
     )
   },
   mc.cores = mc.cores
@@ -211,7 +214,7 @@ tuningNodesizeMDG <- parallel::mclapply(
 
 ### Saving -------------------------------------------------------------------
 save(
-  tuningMaxnodesMGA, tuningMaxnodesMDG,
-  tuningNodesizeMGA, tuningNodesizeMDG,
+  tuningMaxnodesMDA, tuningMaxnodesMDG,
+  tuningNodesizeMDA, tuningNodesizeMDG,
   file = "./Rdata/TuningImportanceCriteria.Rdata"
 )

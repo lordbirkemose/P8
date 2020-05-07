@@ -93,7 +93,7 @@ funCrossValidationXGB <- function(dat, date) {
       objective = "binary:logistic",
       eta = 0.1,
       max_depth = 1,
-      gamma = 1
+      gamma = 3.1
     ),
     nrounds = 200,
     early_stop_round = 20,

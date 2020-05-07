@@ -1,13 +1,10 @@
 ### Packages -----------------------------------------------------------------
-library(randomForest)
 library(magrittr)
 
 ### Data ---------------------------------------------------------------------
 data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
-  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T", tz = "CET"))
-
-dataModel <- data %>%
+  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T", tz = "CET")) %>%
   dplyr::mutate(
     Log.Price = log(Price),
     Start = as.Date(Start),
@@ -31,36 +28,7 @@ dataModel <- data %>%
   ) %>%
   tidyr::drop_na()
 
-# Rolling the model ----------------------------------------------------------
-funCrossValidation <- function(date, dat){
-  train <- dat %>%
-    dplyr::filter(Start < date)
-  
-  vali <- dat %>%
-    dplyr::filter(
-      Start > date, 
-      Start <= date + lubridate::weeks(1)
-    )
-  
-  mod <- randomForest::randomForest(
-    RVDirection ~ . - Start,
-    data = train,
-    ntree = 5000,
-    mtry = m,
-    # maxnodes = 20,
-    nodesize = 7
-  )
-  
-  pred <- predict(mod, newdata = vali, type = "class")
-  
-  oosError <- mean(pred == vali$RVDirection)
-  
-  print(paste('Done:', date))
-  
-  return(oosError)
-}
+dataTrain <- data %>%
+  dplyr::filter()
 
-crossValidationErrors <- unique(
-  lubridate::floor_date(data$Start, unit = 'week')
-)[-(1:10)] %>%
-  purrr::map_dfr(., funCrossValidation, dat = indicators)
+

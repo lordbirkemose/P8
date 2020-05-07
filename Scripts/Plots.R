@@ -135,30 +135,72 @@ ggsave(
 ### Feature selection --------------------------------------------------------
 load("./Rdata/importanceFeatureSelection.Rdata")
 
-ggplot(data = importanceFeatureSelection) +
-  geom_point(
-    aes(
-      x = MDA,
-      y = Indicator, 
-      color = "Mean Decrease Acuracy"
-    )
+importanceFeatureSelectionTidy <- importanceFeatureSelection %>%
+  dplyr::select(
+    Indicator,
+    `Mean Decrease Acuracy` = MDA,
+    `Mean Decrease Impurity` = MDG
+  ) %>%
+  tidyr::gather(key = "var", value = "Value", -Indicator)
+  
+ggplot(data = importanceFeatureSelectionTidy) +
+  geom_bar(
+    aes(x = Indicator, y = Value, fill = var),
+    stat = "identity", position = position_dodge()
   ) +
-  geom_point(
+  geom_hline(
     aes(
-      x = MDG,
-      y = Indicator,
-      color = "Mean Decrease Impurity"
-    )
+    yintercept = importanceFeatureSelection$AverageMDA[1],
+    linetype = "Average Mean Decrease Acuracy"
+    ),
+    color = colors[2]
   ) +
-  scale_colour_manual(
-    "",
+  geom_hline(
+    aes(
+      yintercept = importanceFeatureSelection$AverageMDG[1],
+      linetype = "Average Mean Decrease Impurity"
+    ),
+    color = colors[3]
+  ) +
+  coord_flip() +
+  scale_fill_manual(
+    name = "",
     values = c(
       colors[2],
       colors[3]
     )
   ) +
-  xlab("Value") +
+  scale_linetype_manual(
+    name = "",
+    values = c(2, 2),
+    guide = guide_legend(override.aes = list(color = c(colors[2], colors[3])))
+  ) +
   themeLegend
+
+# ggplot(data = importanceFeatureSelection) +
+#   geom_point(
+#     aes(
+#       x = MDA,
+#       y = Indicator, 
+#       color = "Mean Decrease Acuracy"
+#     )
+#   ) +
+#   geom_point(
+#     aes(
+#       x = MDG,
+#       y = Indicator,
+#       color = "Mean Decrease Impurity"
+#     )
+#   ) +
+#   scale_colour_manual(
+#     "",
+#     values = c(
+#       colors[2],
+#       colors[3]
+#     )
+#   ) +
+#   xlab("Value") +
+#   themeLegend
 
 ggsave(
   file = paste0("./Plots/","featureSelection",".eps"),

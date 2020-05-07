@@ -28,7 +28,4 @@ data <- read.csv("./Data/SpyCleaned.gz") %>%
   ) %>%
   tidyr::drop_na()
 
-dataTrain <- data %>%
-  dplyr::filter()
-
-
+plot(data$RV.Daily ~ data$Start, type = "l")

@@ -430,3 +430,13 @@ funDirectionalVolatility <- function(data, lag) {
 funWeight <- function(n, lambda) {
   exp(n*lambda)/sum(exp(n*lambda))
 }
+
+### Gather to long format ----------------------------------------------------
+funGatherToLongFormat <- function(dataName) {
+  data <- get(dataName)
+  
+  data %<>% tidyr::gather(key = "Var", Value, -Start) %>%
+    dplyr::mutate(Type = dataName)
+  
+  return(data)
+}

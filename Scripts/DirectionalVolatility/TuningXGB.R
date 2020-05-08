@@ -38,13 +38,13 @@ funCrossValidationXGB <- function(
     dplyr::filter(Start < date) %>%
     dplyr::select(- c(Start, RVDirection)) %>%
     as.matrix()
-
+  
   trainLabel <- dat %>%
     dplyr::select(Start, RVDirection) %>%
     dplyr::filter(Start < date) %>%
     dplyr::select(-Start) %>%
     as.matrix()
-
+  
   vali <- dat %>%
     dplyr::filter(
       Start > date, 
@@ -53,7 +53,7 @@ funCrossValidationXGB <- function(
     ) %>%
     dplyr::select(- c(Start, RVDirection)) %>%
     as.matrix()
-
+  
   valiLabel <- dat %>%
     dplyr::select(Start, RVDirection) %>%
     dplyr::filter(
@@ -63,7 +63,7 @@ funCrossValidationXGB <- function(
     ) %>%
     dplyr::select(-Start) %>%
     as.matrix()
-
+  
   mod <- xgboost::xgboost(
     data = train,
     label = trainLabel,
@@ -79,13 +79,13 @@ funCrossValidationXGB <- function(
     verbose = 0,
     eval_metric = "error"
   )
-
+  
   pred <- predict(mod, vali)
   pred <- ifelse(pred > 0.5, 1, 0)
-
+  
   # print(paste("Done:", date))
   oosError <- 1 - mean(pred == valiLabel)
-
+  
   return(list("oosError" = oosError))
 }
 
@@ -104,7 +104,7 @@ funCrossValidationGammaXGB <- function(dat, date, gamma) {
   vali <- dat %>%
     dplyr::filter(
       Start > date, 
-      # Start <= date %+m% lubridate::months(1)
+      # Start <= date %+m% months(1)
       Start <= date + lubridate::weeks(1)
     ) %>%
     dplyr::select(- c(Start, RVDirection)) %>%
@@ -114,7 +114,7 @@ funCrossValidationGammaXGB <- function(dat, date, gamma) {
     dplyr::select(Start, RVDirection) %>%
     dplyr::filter(
       Start > date, 
-      # Start <= date %+m% lubridate::months(1)
+      # Start <= date %+m% months(1)
       Start <= date + lubridate::weeks(1)
     ) %>%
     dplyr::select(-Start) %>%
@@ -144,6 +144,7 @@ funCrossValidationGammaXGB <- function(dat, date, gamma) {
   
   return(list("oosError" = oosError))
 }
+
 ### Grid tuning --------------------------------------------------------------
 # hyperParamGrid <- expand.grid(
 #   nrounds = seq(100, 500, 100),
@@ -190,15 +191,15 @@ funCrossValidationGammaXGB <- function(dat, date, gamma) {
 #   early_stop_round = hyperParamGrid$early_stop_round
 # )
 
-paramTuningGammaXGB <- lapply(
-  function(gamma) {
+paramTuningGammaXGB <- mapply(
+  function(gamma, check) {
     errorRolling <- data$Start %>%
       lubridate::floor_date(., unit = "week") %>%
       unique() %>%
       .[-(1:10)] %>%
       purrr::map_dfr(
         .,
-        funCrossValidationXGB,
+        funCrossValidationGammaXGB,
         dat = data,
         gamma = gamma
       ) %>%
@@ -209,18 +210,10 @@ paramTuningGammaXGB <- lapply(
     
     print(paste("Done:", check, "of 200"))
     
-    return(
-      list(
-        "nrounds" = nrounds,
-        "eta" = eta,
-        "max_depth" = max_depth,
-        "early_stop_round" = early_stop_round,
-        "oosError" = errorRolling$oosError
-      )
-    )
+    return("oosError" = errorRolling$oosError)
   },
   gamma = seq(from = 0, to = 10, by = 0.1),
-  check = 1:100
+  check = 1:101
 )
 
 ### Saving -------------------------------------------------------------------

@@ -104,19 +104,24 @@ funRolling <- function(date, dat){
       Start < date,
       Start >= date %m-% lubridate::years(1)
     )
-
+  
   vali <- dat %>%
     dplyr::filter(
       Start > date, 
       Start <= date + lubridate::weeks(1)
     )
-
-  mod <- lm(
+  
+  modOLS <- lm(
     RV.1.Ahead ~ . -Start,
     data = train
   )
-
-  pred <- stats::predict(mod, vali)
+  
+  modWLS <- lm(
+    RV.1.Ahead ~ . -Start,
+    data = train,
+    weights = predict(modOLS)
+  )
+  pred <- stats::predict(modWLS, vali)
   
   print(paste("Done:", date))
   
@@ -126,13 +131,13 @@ funRolling <- function(date, dat){
 }
 
 ### Rolling ------------------------------------------------------------------
-extendedOLS <- data$Start %>%
+extendedWLS <- data$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:53)] %>%
   purrr::map_dfr(., funRolling, dat = data)
 
-baseOLS <- data$Start %>%
+baseWLS <- data$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:53)] %>%
@@ -143,13 +148,13 @@ baseOLS <- data$Start %>%
       dplyr::select(Start, RV.1.Ahead, RV.Daily, RV.Weekly, RV.Monthly)
   )
 
-extendedLogOLS <- data$Start %>%
+extendedLogWLS <- data$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:53)] %>%
   purrr::map_dfr(., funRolling, dat = dataLog)
 
-baseLogOLS <- data$Start %>%
+baseLogWLS <- data$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:53)] %>%
@@ -161,28 +166,28 @@ baseLogOLS <- data$Start %>%
   )
 
 ### Error measurements -------------------------------------------------------
-extendedOLS %<>%
+extendedWLS <- extendedOLS %>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseOLS %<>%
+baseWLS <- baseOLS %>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-extendedLogOLS %<>%
+extendedLogWLS <- extendedLogOLS %>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseLogOLS %<>%
+baseLogWLS <- baseLogOLS %>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
@@ -190,12 +195,12 @@ baseLogOLS %<>%
   )
 
 ### Save ---------------------------------------------------------------------
-dataToSave <- c("extendedOLS", "baseOLS", "extendedLogOLS", "baseLogOLS")
+dataToSave <- c("extendedWLS", "baseWLS", "extendedLogWLS", "baseLogWLS")
 
 dataLong <- purrr::map_df(dataToSave, funGatherToLongFormat)
 
 write.csv(
   dataLong,
-  file = "./Data/resultsOLS.csv",
+  file = "./Data/resultsWLS.csv",
   row.names = FALSE
 )

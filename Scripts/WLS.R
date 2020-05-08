@@ -119,8 +119,9 @@ funRolling <- function(date, dat){
   modWLS <- lm(
     RV.1.Ahead ~ . -Start,
     data = train,
-    weights = predict(modOLS)
+    weights = 1/abs(fitted(modOLS))
   )
+  
   pred <- stats::predict(modWLS, vali)
   
   print(paste("Done:", date))
@@ -166,28 +167,28 @@ baseLogWLS <- data$Start %>%
   )
 
 ### Error measurements -------------------------------------------------------
-extendedWLS <- extendedOLS %>%
+extendedWLS %<>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseWLS <- baseOLS %>%
+baseWLS %<>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-extendedLogWLS <- extendedLogOLS %>%
+extendedLogWLS %<>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseLogWLS <- baseLogOLS %>%
+baseLogWLS %>%
   dplyr::filter(Start > "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),

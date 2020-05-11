@@ -264,7 +264,8 @@ ggsave(
 )
 
 
-# RV ACF ------------------------------------------------------------------
+### RV ACF ------------------------------------------------------------------
+
 data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
   dplyr::mutate(
@@ -285,6 +286,6 @@ ggAcf(
   theme
 
 ggsave(
-  file = paste0("C:/Users/Sanda/Documents/Plots/","RV_ACF",".eps"),
+  file = paste0("./Plots/","RV_ACF",".eps"),
   width =  9, height = 3.8 , device = cairo_ps , dpi = 600
 )

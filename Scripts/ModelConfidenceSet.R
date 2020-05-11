@@ -19,7 +19,7 @@ for(method in methods){
 }
 colnames(Loss) <- modelnames
 
-MCS::MCSprocedure(Loss = Loss, 
+modelSet <- MCS::MCSprocedure(Loss = Loss, 
                   alpha = 0.05, 
                   B = 5000, 
                   statistic = "TR")

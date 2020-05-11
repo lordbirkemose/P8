@@ -10,8 +10,8 @@ source("./Scripts/Functions.R", echo = FALSE)
 
 ### Data ---------------------------------------------------------------------
 data <- read.csv("./Data/SpyCleaned.gz") %>%
-  tibble::as_tibble() %$%
-  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
+  tibble::as_tibble() %>%
+  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %$%
   left_join_multi(
     funDirectionalVolatility(., lag = -1),
     funAverageTrueRange(.),
@@ -30,20 +30,7 @@ dataTrain <- data %>%
   dplyr::filter(Start <= "2007-09-30")
 
 dataTest <- data %>%
-  dplyr::filter(Start >= "2006-08-31") %$% 
-  left_join_multi(
-    funDirectionalVolatility(., lag = -1),
-    funAverageTrueRange(.),
-    funStochasticOscillator(., k = 1),
-    funOpenCloseToDailyRange(.),
-    funVolatilityRatio(., k = 20),
-    funAbsolutDailyReturn(.),
-    funRealizedVolatilityCyclicty(.),
-    by = "Start"
-  ) %>%
-  stats::na.omit() %>%
-  dplyr::mutate(Start = as.POSIXct(Start)) %>%
-  dplyr::select(-pctD)
+  dplyr::filter(Start >= "2006-08-31")
 
 ### Functions ----------------------------------------------------------------
 funCrossValidationRF <- function(date, dat){
@@ -123,7 +110,7 @@ funRollingXGB <- function(date, dat){
       objective = "binary:logistic",
       eta = 0.07,
       max_depth = 1,
-      gamma = 0
+      gamma = 1.4
     ),
     nrounds = 400,
     early_stop_round = 20,

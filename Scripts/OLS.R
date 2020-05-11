@@ -76,28 +76,28 @@ baseLogOLS <- data$Start %>%
 
 ### Error measurements -------------------------------------------------------
 extendedOLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
 baseOLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
 extendedLogOLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
 baseLogOLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100

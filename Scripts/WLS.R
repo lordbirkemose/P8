@@ -82,28 +82,28 @@ baseLogWLS <- data$Start %>%
 
 ### Error measurements -------------------------------------------------------
 extendedWLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
 baseWLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
 extendedLogWLS %<>%
-  dplyr::filter(Start > "2007-10-01") %>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseLogWLS %>%
-  dplyr::filter(Start > "2007-10-01") %>%
+baseLogWLS %<>%
+  dplyr::filter(Start >= "2007-10-01") %>%
   dplyr::mutate(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100

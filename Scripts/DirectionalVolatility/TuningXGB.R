@@ -149,7 +149,7 @@ hyperParamGrid <- expand.grid(
   eta = seq(0.001, 0.9, 0.002),
   max_depth = seq(1, 10, 1),
   early_stop_round = seq(20, 100, 30)
-)[1,]
+)
 
 paramTuningXGB <- mapply(
   function(nrounds, eta, max_depth, early_stop_round, check) {

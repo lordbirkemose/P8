@@ -3,6 +3,7 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(lubridate)
   library(Cairo)
+  library(forecast)
 })
 
 source("./Scripts/Functions.R", echo = FALSE)
@@ -259,5 +260,31 @@ ggplot() +
 
 ggsave(
   file = paste0("./Plots/","tuningImportanceCriteria",".eps"),
+  width =  9, height = 3.8 , device = cairo_ps , dpi = 600
+)
+
+
+# RV ACF ------------------------------------------------------------------
+data <- read.csv("./Data/SpyCleaned.gz") %>%
+  tibble::as_tibble() %>%
+  dplyr::mutate(
+    Start = as.POSIXct(Start, format = "%F"),
+    Log.Price = log(Price)
+  ) %>%
+  dplyr::group_by(Start) %>%
+  dplyr::summarise( RV.Daily = sum(diff(Log.Price)^2) ) %>% 
+  dplyr::filter(., Start <= "2007-09-30")
+
+ggAcf(
+  data$RV.Daily,
+  lag.max = 100,
+  type = c("correlation", "covariance", "partial"),
+  plot = TRUE,
+  main = NULL,
+) + 
+  theme
+
+ggsave(
+  file = paste0("C:/Users/Sanda/Documents/Plots/","RV_ACF",".eps"),
   width =  9, height = 3.8 , device = cairo_ps , dpi = 600
 )

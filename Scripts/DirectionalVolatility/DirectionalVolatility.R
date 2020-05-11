@@ -10,9 +10,8 @@ source("./Scripts/Functions.R", echo = FALSE)
 
 ### Data ---------------------------------------------------------------------
 data <- read.csv("./Data/SpyCleaned.gz") %>%
-  tibble::as_tibble() %>%
+  tibble::as_tibble() %$%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
-  dplyr::filter(Start <= "2007-09-30") %$% 
   left_join_multi(
     funDirectionalVolatility(., lag = -1),
     funAverageTrueRange(.),
@@ -27,9 +26,10 @@ data <- read.csv("./Data/SpyCleaned.gz") %>%
   dplyr::mutate(Start = as.POSIXct(Start)) %>%
   dplyr::select(-pctD)
 
-dataTest <- read.csv("./Data/SpyCleaned.gz") %>%
-  tibble::as_tibble() %>%
-  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
+dataTrain <- data %>%
+  dplyr::filter(Start <= "2007-09-30")
+
+dataTest <- data %>%
   dplyr::filter(Start >= "2006-08-31") %$% 
   left_join_multi(
     funDirectionalVolatility(., lag = -1),
@@ -76,70 +76,7 @@ funCrossValidationRF <- function(date, dat){
   return(list("oosError" = oosError, "Date" = date))
 }
 
-funCrossValidationXGB <- function(dat, date) {
-  train <- dat %>%
-    dplyr::filter(
-      Start < date,
-      Start >= date %m-% lubridate::years(1)
-    ) %>%
-    dplyr::select(- c(Start, RVDirection)) %>%
-    as.matrix()
-  
-  trainLabel <- dat %>%
-    dplyr::select(Start, RVDirection) %>%
-    dplyr::filter(
-      Start < date,
-      Start >= date %m-% lubridate::years(1)
-    ) %>%
-    dplyr::select(-Start) %>%
-    as.matrix()
-  
-  vali <- dat %>%
-    dplyr::filter(
-      Start > date, 
-      # Start <= date %m+% months(1)
-      Start <= date + lubridate::weeks(1)
-    ) %>%
-    dplyr::select(- c(Start, RVDirection)) %>%
-    as.matrix()
-
-  valiLabel <- dat %>%
-    dplyr::select(Start, RVDirection) %>%
-    dplyr::filter(
-      Start > date, 
-      # Start <= date %m+% months(1)
-      Start <= date + lubridate::weeks(1)
-    ) %>%
-    dplyr::select(-Start) %>%
-    as.matrix()
-
-  mod <- xgboost::xgboost(
-    data = train,
-    label = trainLabel,
-    params = list(
-      booster = "gbtree",
-      objective = "binary:logistic",
-      eta = 0.07,
-      max_depth = 1,
-      gamma = 0
-    ),
-    nrounds = 400,
-    early_stop_round = 20,
-    verbose = 0,
-    eval_metric = "error"
-  )
-
-  pred <- predict(mod, vali)
-  pred <- ifelse(pred > 0.5, 1, 0)
-  oosError <- mean(pred == valiLabel)
-
-  print(paste("Done:", date))
-  
-  return(list("oosError" = oosError, "Date" = date))
-}
-
 funRollingXGB <- function(date, dat){
-# browser()
   train <- dat %>%
     dplyr::filter(
       Start < date,
@@ -159,8 +96,7 @@ funRollingXGB <- function(date, dat){
   
   vali <- dat %>%
     dplyr::filter(
-      Start > date, 
-      # Start <= date %m+% months(1)
+      Start > date,
       Start <= date + lubridate::weeks(1)
     )
   
@@ -173,8 +109,7 @@ funRollingXGB <- function(date, dat){
   valiLabel <- dat %>%
     dplyr::select(Start, RVDirection) %>%
     dplyr::filter(
-      Start > date, 
-      # Start <= date %m+% months(1)
+      Start > date,
       Start <= date + lubridate::weeks(1)
     ) %>%
     dplyr::select(-Start) %>%
@@ -198,37 +133,38 @@ funRollingXGB <- function(date, dat){
   
   pred <- predict(mod, vali)
   pred <- ifelse(pred > 0.5, 1, 0)
-  hitRate <- 1 - mean(pred == valiLabel)
+  error <- 1 - mean(pred == valiLabel)
 
   print(paste("Done:", date))
   
   return(
     data.frame(
-      "Start" = Start, "RVDirectionPred" = pred, "Error")
+      "Start" = Start, "RVDirectionPred" = pred, "Error" = error)
   )
 }
 
-### Random Forest ------------------------------------------------------------
+### Training -----------------------------------------------------------------
+# Random Forest
 set.seed(2020)
-errorRollingRF <- data$Start %>%
+errorRollingRF <- dataTrain$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:10)] %>%
   purrr::map_dfr(
     .,
     funCrossValidationRF,
-    dat = data %>% dplyr::mutate(RVDirection = as.factor(RVDirection))
+    dat = dataTrain %>% dplyr::mutate(RVDirection = as.factor(RVDirection))
   )
 1 - mean(errorRollingRF$oosError)
 
-### Extreme General Boosting -------------------------------------------------
+# Extreme General Boosting 
 set.seed(2020)
-errorRollingXGB <- data$Start %>%
+errorRollingXGB <- dataTrain$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:10)] %>%
-  purrr::map_dfr(., funCrossValidationXGB, dat = data)
-mean(errorRollingXGB$oosError)
+  purrr::map_dfr(., funRollingXGB, dat = dataTrain)
+1- mean(errorRollingXGB$Error)
 
 ### Test period prediction ---------------------------------------------------
 set.seed(2020)
@@ -237,7 +173,7 @@ predDirectionTestXGB <- dataTest$Start %>%
   unique() %>%
   .[-(1:53)] %>%
   purrr::map_dfr(., funRollingXGB, dat = dataTest)
-
+1- mean(predDirectionTestXGB$Error)
 
 ### Saving data --------------------------------------------------------------
 write.csv(

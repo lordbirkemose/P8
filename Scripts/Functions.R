@@ -494,12 +494,14 @@ funAcfPlot <- function(data, lag.max, include.lag.zero = TRUE) {
 }
 
 ### Get data for HAR ---------------------------------------------------------
-funGetDataHAR <- function(log = FALSE) {
+funGetDataHAR <- function(log = FALSE, test = FALSE) {
   predDirectionTestXGB <- read.csv("./Data/predDirectionTestXGB.csv") %>%
     tibble::as_tibble() %>%
     dplyr::mutate(
       Start = as.POSIXct(Start, format = "%F"),
-    )
+    ) %>%
+    dplyr::filter(ifelse(test = FALSE, Start <= "2007-09-30", 
+                                       Start >= "2007-09-30"))
   
   if(log) {
     dataLog <- read.csv("./Data/SpyCleaned.gz") %>%

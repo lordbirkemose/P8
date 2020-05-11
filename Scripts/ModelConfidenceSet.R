@@ -11,7 +11,7 @@ for(method in methods){
     Loss <- data %>%
       dplyr::filter(Type == paste0(model, method)) %>%
       tidyr::spread(key = Var, value = Value) %$%
-      LossVol(RV, RVPred) %>%
+      MCS::LossVol(RV, RVPred) %>%
       cbind(Loss, .)
     modelnames %<>%
       cbind(., paste0(model, method))

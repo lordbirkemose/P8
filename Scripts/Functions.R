@@ -441,58 +441,6 @@ funGatherToLongFormat <- function(dataName) {
   return(data)
 }
 
-### ACF plot -----------------------------------------------------------------
-funAcfPlot <- function(data, lag.max, include.lag.zero = TRUE) {
-  
-  acfData <- stats::acf(data, lag.max = lag.max, plot = FALSE)
-  
-  acfData <- tibble::tibble(
-    lag = acfData$lag,
-    acf = acfData$acf
-  )
-  
-  if(!include.lag.zero) acfData %<>% dplyr::slice(-1)
-  
-  confInt <- qnorm((1 + 0.95)/2)/sqrt(length(data))
-
-  if(min(acfData$acf) >= 0) {
-    plot <- ggplot2::ggplot(data = acfData, ggplot2::aes(x = lag, y = acf)) +
-      ggplot2::geom_hline(yintercept = 0) +
-      ggplot2::geom_segment(ggplot2::aes(xend = lag, yend = 0), color = colors[2]) +
-      ggplot2::geom_hline(yintercept = confInt, linetype = "dotted") +
-      ggplot2::labs(x = "Lag", y = "ACF") +
-      list(
-        ggplot2::theme_minimal(),
-        ggplot2::theme(
-          panel.grid.major = ggplot2::element_line(), 
-          panel.grid.minor = ggplot2::element_line(),
-          panel.background = ggplot2::element_blank(), 
-          axis.line = ggplot2::element_line(colour = "black")
-          # axis.line.x = ggplot2::element_blank()
-        )
-      )
-  } else {
-    plot <- ggplot2::ggplot(data = acfData, ggplot2::aes(x = lag, y = acf)) +
-      ggplot2::geom_hline(yintercept = 0) +
-      ggplot2::geom_segment(ggplot2::aes(xend = lag, yend = 0)) +
-      ggplot2::geom_hline(yintercept = -confInt, linetype = "dotted") +
-      ggplot2::geom_hline(yintercept = confInt, linetype = "dotted") +
-      ggplot2::labs(x = "Lag", y = "ACF") +
-      list(
-        ggplot2::theme_minimal(),
-        ggplot2::theme(
-          panel.grid.major = ggplot2::element_line(), 
-          panel.grid.minor = ggplot2::element_line(),
-          panel.background = ggplot2::element_blank(), 
-          axis.line = ggplot2::element_line(colour = "black")
-          # axis.line.x = ggplot2::element_blank()
-        )
-      )
-  }
-
-  return(plot)
-}
-
 ### Get data for HAR ---------------------------------------------------------
 funGetDataHAR <- function(log = FALSE, test = FALSE) {
   if (test) {

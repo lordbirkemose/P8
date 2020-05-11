@@ -119,11 +119,11 @@ funCrossValidationXGB <- function(dat, date) {
     params = list(
       booster = "gbtree",
       objective = "binary:logistic",
-      eta = 0.1,
+      eta = 0.07,
       max_depth = 1,
-      gamma = 3.1
+      gamma = 0
     ),
-    nrounds = 200,
+    nrounds = 400,
     early_stop_round = 20,
     verbose = 0,
     eval_metric = "error"
@@ -131,7 +131,7 @@ funCrossValidationXGB <- function(dat, date) {
 
   pred <- predict(mod, vali)
   pred <- ifelse(pred > 0.5, 1, 0)
-  oosError <- 1 - mean(pred == valiLabel)
+  oosError <- mean(pred == valiLabel)
 
   print(paste("Done:", date))
   
@@ -186,11 +186,11 @@ funRollingXGB <- function(date, dat){
     params = list(
       booster = "gbtree",
       objective = "binary:logistic",
-      eta = 0.1,
+      eta = 0.07,
       max_depth = 1,
-      gamma = 3.1
+      gamma = 0
     ),
-    nrounds = 200,
+    nrounds = 400,
     early_stop_round = 20,
     verbose = 0,
     eval_metric = "error"
@@ -198,10 +198,14 @@ funRollingXGB <- function(date, dat){
   
   pred <- predict(mod, vali)
   pred <- ifelse(pred > 0.5, 1, 0)
+  hitRate <- 1 - mean(pred == valiLabel)
 
   print(paste("Done:", date))
   
-  return(data.frame("Start" = Start, "RVDirectionPred" = pred))
+  return(
+    data.frame(
+      "Start" = Start, "RVDirectionPred" = pred, "Error")
+  )
 }
 
 ### Random Forest ------------------------------------------------------------
@@ -223,8 +227,8 @@ errorRollingXGB <- data$Start %>%
   lubridate::floor_date(., unit = "week") %>%
   unique() %>%
   .[-(1:10)] %>%
-  purrr::map_dfr(., funRollingXGB, dat = data)
-1- mean(errorRollingXGB$oosError)
+  purrr::map_dfr(., funCrossValidationXGB, dat = data)
+mean(errorRollingXGB$oosError)
 
 ### Test period prediction ---------------------------------------------------
 set.seed(2020)
@@ -233,7 +237,8 @@ predDirectionTestXGB <- dataTest$Start %>%
   unique() %>%
   .[-(1:53)] %>%
   purrr::map_dfr(., funRollingXGB, dat = dataTest)
-  
+
+
 ### Saving data --------------------------------------------------------------
 write.csv(
   predDirectionTestXGB,

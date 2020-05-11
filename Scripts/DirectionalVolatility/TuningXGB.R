@@ -84,7 +84,7 @@ funCrossValidationXGB <- function(
   pred <- ifelse(pred > 0.5, 1, 0)
   
   # print(paste("Done:", date))
-  oosError <- 1 - mean(pred == valiLabel)
+  oosError <- mean(pred == valiLabel)
   
   return(list("oosError" = oosError))
 }
@@ -140,7 +140,7 @@ funCrossValidationGammaXGB <- function(dat, date, gamma) {
   pred <- ifelse(pred > 0.5, 1, 0)
   
   # print(paste("Done:", date))
-  oosError <- 1 - mean(pred == valiLabel)
+  oosError <- mean(pred == valiLabel)
   
   return(list("oosError" = oosError))
 }
@@ -191,6 +191,7 @@ funCrossValidationGammaXGB <- function(dat, date, gamma) {
 #   early_stop_round = hyperParamGrid$early_stop_round
 # )
 
+### Tuning gamma -------------------------------------------------------------
 paramTuningGammaXGB <- mapply(
   function(gamma, check) {
     errorRolling <- data$Start %>%

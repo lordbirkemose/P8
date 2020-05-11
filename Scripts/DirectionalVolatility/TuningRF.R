@@ -11,18 +11,17 @@ source("./Scripts/Functions.R", echo = FALSE)
 data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
-  dplyr::filter(Start <= "2007-09-30")
-
-data <- left_join_multi(
-  funDirectionalVolatility(data, lag = -1),
-  funAverageTrueRange(data),
-  funStochasticOscillator(data, k = 1),
-  funOpenCloseToDailyRange(data),
-  funVolatilityRatio(data, k = 20),
-  funAbsolutDailyReturn(data),
-  funRealizedVolatilityCyclicty(data),
-  by = "Start"
-) %>%
+  dplyr::filter(Start <= "2007-09-30") %$%
+  left_join_multi(
+    funDirectionalVolatility(., lag = -1),
+    funAverageTrueRange(.),
+    funStochasticOscillator(., k = 1),
+    funOpenCloseToDailyRange(.),
+    funVolatilityRatio(., k = 20),
+    funAbsolutDailyReturn(.),
+    funRealizedVolatilityCyclicty(.),
+    by = "Start"
+  ) %>%
   stats::na.omit() %>%
   dplyr::mutate(
     RVDirection = as.factor(RVDirection),
@@ -51,36 +50,9 @@ funCrossValidation <- function(date, dat, m){
 
   pred <- stats::predict(mod, vali, type = "class")
 
-  oosError <- 1 - mean(pred == vali$RVDirection)
+  oosError <- mean(pred == vali$RVDirection)
 
   return(list("oosError" = oosError))
-}
-
-funRollingModel <- function(date, dat, nDay){
-  train <- dat %>%
-    dplyr::filter(
-      Start < date
-    )
-  
-  vali <- dat %>%
-    dplyr::filter(
-      Start > date, 
-      Start <= date + lubridate::days(nDay)
-    )
-  
-  mod <- randomForest::randomForest(
-    RVDirection ~ . -Start,
-    data = train,
-    ntree = 5000,
-    mtry = 6,
-    maxnodes = 32
-  )
-  
-  pred <- stats::predict(mod, vali, type = "class")
-  
-  oosError <- 1 - mean(pred == vali$RVDirection)
-  
-  return(oosError)
 }
 
 ### Tuning m -----------------------------------------------------------------
@@ -109,27 +81,6 @@ tuningM <- parallel::mclapply(
     )
   },
   mc.cores = mc.cores
-) %>%
-  do.call(rbind, .)
-
-### Tuning retraining frequency ----------------------------------------------
-mc.cores <- 3
-
-set.seed(2020)
-tuningRetrainFreq <- pbapply::pblapply(
-  c(1, 5, 10, 15, 20),
-  function(nDay) {
-    errorRolling <- data$Start %>%
-      .[seq(1, length(.), nDay)] %>%
-      .[-(1:10)] %>%
-      purrr::map_dfr(., funRollingModel, dat = data, nDay = nDay) %>%
-      dplyr::summarise(
-        hitRate = 1 - mean(oosError)
-      )
-    return(
-      list("nDay" = nDay, "oosError" = errorRolling$essError)
-    )
-  }
 ) %>%
   do.call(rbind, .)
 

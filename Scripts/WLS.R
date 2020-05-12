@@ -15,7 +15,7 @@ dataLog <- funGetDataHAR(log = TRUE, test = TRUE)
 funRolling <- function(date, dat){
   train <- dat %>%
     dplyr::filter(
-      Start < date,
+      Start <= date,
       Start >= date %m-% lubridate::years(1)
     )
   
@@ -81,30 +81,30 @@ baseLogWLS <- data$Start %>%
   )
 
 ### Error measurements -------------------------------------------------------
-extendedWLS %<>%
+extendedWLS %>%
   dplyr::filter(Start >= "2007-10-01") %>%
-  dplyr::mutate(
+  dplyr::summarise(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseWLS %<>%
+baseWLS %>%
   dplyr::filter(Start >= "2007-10-01") %>%
-  dplyr::mutate(
+  dplyr::summarise(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-extendedLogWLS %<>%
+extendedLogWLS %>%
   dplyr::filter(Start >= "2007-10-01") %>%
-  dplyr::mutate(
+  dplyr::summarise(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )
 
-baseLogWLS %<>%
+baseLogWLS %>%
   dplyr::filter(Start >= "2007-10-01") %>%
-  dplyr::mutate(
+  dplyr::summarise(
     RMSE = sqrt(mean((RV - RVPred)^2)),
     MAPE = mean(abs((RV - RVPred)/RV))*100
   )

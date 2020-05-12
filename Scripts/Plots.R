@@ -287,5 +287,5 @@ ggAcf(
 
 ggsave(
   file = paste0("./Plots/","RV_ACF",".eps"),
-  width =  9, height = 3.8 , device = cairo_ps , dpi = 600
+  width =  9, height = 3 , device = cairo_ps , dpi = 600
 )

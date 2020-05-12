@@ -10,7 +10,9 @@ for(method in methods){
   for (model in models) {
     Loss <- data %>%
       dplyr::filter(Type == paste0(model, method)) %>%
-      tidyr::spread(key = Var, value = Value) %$%
+      tidyr::spread(key = Var, value = Value) %>%
+      dplyr::mutate(Start = as.POSIXct(Start)) %>%
+      dplyr::filter(Start >= "2007-10-01") %$%
       MCS::LossVol(RV, RVPred) %>%
       cbind(Loss, .)
     modelnames %<>%

@@ -411,6 +411,15 @@ funGatherToLongFormat <- function(dataName) {
   return(data)
 }
 
+funGatherToLongFormat2 <- function(data, name) {
+  dat <- data[[name]]
+  
+  dat %<>% tidyr::gather(key = "Var", Value, -Start) %>%
+    dplyr::mutate(Type = name)
+  
+  return(dat)
+}
+
 ### Get data for HAR ---------------------------------------------------------
 funGetDataHAR <- function(model = "extended", test = FALSE) {
   if (!is.element(model, c("base", "baseLog", "extended", "extendedLog")) ) {
@@ -464,12 +473,7 @@ funGetDataHAR <- function(model = "extended", test = FALSE) {
       Start, RV.1.Ahead, RV.Daily, RV.Weekly, RV.Monthly, Jump.Daily,
       Pos.Return, Neg.Return, RV.Direction
     )
-  if (model %in% c("base", "baseLog")) {
-    data %<>%  
-      dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
-  }
   
-    
   if(model %in% c("baseLog", "extendedLog")) {
     data %<>%
     dplyr::mutate(
@@ -480,6 +484,11 @@ funGetDataHAR <- function(model = "extended", test = FALSE) {
       Pos.Return = log(1 + Pos.Return),
       Neg.Return = log(1 + abs(Neg.Return))
     )
+  }
+  
+  if (model %in% c("base", "baseLog")) {
+    data %<>%  
+      dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
   }
 
   data %>% 

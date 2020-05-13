@@ -464,7 +464,7 @@ funGetDataHAR <- function(model = "extended", test = FALSE) {
       Start, RV.1.Ahead, RV.Daily, RV.Weekly, RV.Monthly, Jump.Daily,
       Pos.Return, Neg.Return, RV.Direction
     )
-  if (model %in% c("base", "extended")) {
+  if (model %in% c("base", "baseLog")) {
     data %<>%  
       dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
   }

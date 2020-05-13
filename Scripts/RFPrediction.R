@@ -144,7 +144,15 @@ funRollingPred <- function(
         method = method,
         param = param
       )
-      
+    
+    paste(method, model, "- RMSE and MAPE")
+    data %>%
+      dplyr::filter(Start >= "2007-10-01") %>%
+      dplyr::summarise(
+        RMSE = sqrt(mean((RV - RVPred)^2)),
+        MAPE = mean(abs((RV - RVPred)/RV))*100
+      ) %>%
+      print()
   }
 }
 

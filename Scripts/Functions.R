@@ -442,7 +442,11 @@ funGatherToLongFormat <- function(dataName) {
 }
 
 ### Get data for HAR ---------------------------------------------------------
-funGetDataHAR <- function(log = FALSE, test = FALSE) {
+funGetDataHAR <- function(model = "extended", test = FALSE) {
+  if (!is.element(model, c("base", "baseLog", "extended", "extendedLog")) ) {
+    stop("The specified model is not a function option ",
+         "(base, baseLog, extended, extendedLog)")
+  }
   if (test) {
     predDirectionTestXGB <- read.csv("./Data/predDirectionTestXGB.csv") %>%
       tibble::as_tibble() %>%
@@ -490,8 +494,13 @@ funGetDataHAR <- function(log = FALSE, test = FALSE) {
       Start, RV.1.Ahead, RV.Daily, RV.Weekly, RV.Monthly, Jump.Daily,
       Pos.Return, Neg.Return, RV.Direction
     )
+  if (model %in% c("base", "baseLog")) {
+    data %<>%  
+      dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
+  }
+  
     
-  if(log) {
+  if(model %in% c("extended", "extendedLog")) {
     data %<>%
     dplyr::mutate(
       RV.1.Ahead = log(RV.1.Ahead),

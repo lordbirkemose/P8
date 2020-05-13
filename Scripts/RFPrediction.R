@@ -8,7 +8,7 @@ source("./Scripts/Functions.R")
 
 ### Data (temp afsnit) -------------------------------------------------------
 data <- funGetDataHAR(test = TRUE)
-dataLog <- funGetDataHAR(log = TRUE)
+dataLog <- funGetDataHAR(model = "extendedLog")
 
 dataBase <- data %>%
   dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
@@ -114,69 +114,40 @@ funRollingPred <- function(
   dat, trainFreq, method, param
 ) {
   if (!is.element(method, c("OLS","WLS","RF","XGB") )) {
-    error("The specified method is not a function option")
+    stop("The specified method is not a function option ",
+         "(OLS, WLS, RF, XGB)")
   }
   if (!is.element(trainFreq, c("daily", "weekly") )) {
-    error("The specified trainFreq is not a function option")
+    stop("The specified trainFreq is not a function option ",
+         "(daily, weekly)")
   }
+  dates <- read.csv("./Data/dates.csv") %>%
+    tidyr::as_tibble() %>%
+    dplyr::select(Start)
+  
   for (model in c("extended", "base", "extendedLog", "baseLog")) {
-    data <- funGetDataHAR(
-      test = TRUE
-    )
-    funRolling(
-      date = date,
-      dat = data,
-      trainFreq = trainFreq,
-      method = method,
-      param = param
-    )
+    data <- dates %>%
+      filter(Start >= "2007-10-01" %m+% lubridate::years(1)) %>%
+      {
+        if (trainFreq == "daily") {
+          lubridate::floor_date(., unit = "day")
+        }
+        else {
+          lubridate::floor_date(., unit = "week")
+        }
+      } %>%
+      purr::map_dfr(
+        .,
+        funRolling,
+        dat = funGetDataHAR(model = model, test = TRUE), 
+        trainFreq = trainFreq,
+        method = method,
+        param = param
+      )
+      
   }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-funPrediction <- function(
-  date, dat, ntree = 128, mtry = 2, maxnodes = 10
-) {
-  set.seed(2020)
-  train <- dat %>%
-    dplyr::filter(Start < date,
-                  Start >= date %m-% years(1)) %>%
-    dplyr::select(-Start)
-  
-  test <- dat %>%
-    dplyr::filter(Start == date) %>%
-    dplyr::select(-Start)
-  
-  mod <- randomForest::randomForest(
-    RV.1.Ahead ~ .,
-    data = train,
-    ntree = ntree,
-    mtry = mtry,
-    maxnodes = maxnodes
-  )
-  
-   pred <- predict(mod, test)
-
-   print(paste("Done:", date))
-
-   return(
-     data.frame("Start" = date, "RV" = test$RV.1.Ahead, "RVPred" = pred)
-   )
-  # return(mod)
-}
-funPrediction(as.POSIXct("2007-10-01"), data)
 
 ### Prediction ---------------------------------------------------------------
 

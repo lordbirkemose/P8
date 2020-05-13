@@ -7,8 +7,8 @@ suppressPackageStartupMessages({
 source("./Scripts/Functions.R")
 
 ### Data ---------------------------------------------------------------------
-data <- funGetDataHAR()
-dataLog <- funGetDataHAR(log = TRUE)
+data <- funGetDataHAR(model = "extended")
+dataLog <- funGetDataHAR(model = "extendedLog")
 
 dataBase <- data %>%
   dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))

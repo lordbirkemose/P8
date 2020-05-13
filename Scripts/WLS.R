@@ -7,9 +7,9 @@ suppressPackageStartupMessages({
 source("./Scripts/Functions.R")
 
 ### Data ---------------------------------------------------------------------
-data <- funGetDataHAR(test = TRUE)
+data <- funGetDataHAR(model = "extended", test = TRUE)
 
-dataLog <- funGetDataHAR(log = TRUE, test = TRUE)
+dataLog <- funGetDataHAR(model = "extendedLog", test = TRUE)
 
 ### Functions ----------------------------------------------------------------
 funRolling <- function(date, dat){

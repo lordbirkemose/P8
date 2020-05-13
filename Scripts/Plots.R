@@ -265,7 +265,6 @@ ggsave(
 
 
 ### RV ACF ------------------------------------------------------------------
-
 data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
   dplyr::mutate(
@@ -285,7 +284,41 @@ ggAcf(
 ) + 
   theme
 
-ggsave(
-  file = paste0("./Plots/","RV_ACF",".eps"),
-  width =  9, height = 3 , device = cairo_ps , dpi = 600
+# ggsave(
+#   file = paste0("./Plots/","RV_ACF",".eps"),
+#   width =  9, height = 3 , device = cairo_ps , dpi = 600
+# )
+
+### Results: OLS -------------------------------------------------------------
+dataOLS <- read.csv("./Data/resultsOLS.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start))
+
+labelsOLS <- c(
+  baseLogOLS = "Base HAR Log", baseOLS = "Base HAR",
+  extendedLogOLS = "Extended HAR Log", extendedOLS = "Extended HAR"
 )
+  
+funResultsPlots(dataOLS, labelsOLS)
+
+# ggsave(
+#   file = paste0("./Plots/","OLS",".eps"),
+#   width =  9, height = 6.5 , device = cairo_ps , dpi = 600
+# )
+
+### Results: WLS -------------------------------------------------------------
+dataWLS <- read.csv("./Data/resultsWLS.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start))
+
+labelsWLS <- c(
+  baseLogWLS = "Base HAR Log", baseWLS = "Base HAR",
+  extendedLogWLS = "Extended HAR Log", extendedWLS = "Extended HAR"
+)
+
+funResultsPlots(dataWLS, labelsWLS)
+
+# ggsave(
+#   file = paste0("./Plots/","WLS",".eps"),
+#   width =  9, height = 6.5 , device = cairo_ps , dpi = 600
+# )

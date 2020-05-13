@@ -494,13 +494,13 @@ funGetDataHAR <- function(model = "extended", test = FALSE) {
       Start, RV.1.Ahead, RV.Daily, RV.Weekly, RV.Monthly, Jump.Daily,
       Pos.Return, Neg.Return, RV.Direction
     )
-  if (model %in% c("base", "baseLog")) {
+  if (model %in% c("base", "extended")) {
     data %<>%  
       dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
   }
   
     
-  if(model %in% c("extended", "extendedLog")) {
+  if(model %in% c("baseLog", "extendedLog")) {
     data %<>%
     dplyr::mutate(
       RV.1.Ahead = log(RV.1.Ahead),

@@ -1,7 +1,7 @@
 library(magrittr)
 
 # methods <- c("OLS", "WLS", "RF", "XGB", "ARFIMA")
-methods <- c("OLS", "WLS", "RF", "XGB")
+methods <- c("OLS")
 models <- c("base", "baseLog", "extended", "extendedLog")
 trainFreqs <- c("daily", "weekly")
 Loss <- modelnames <- NULL

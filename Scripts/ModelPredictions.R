@@ -81,6 +81,18 @@ funRolling <- function(
     )
   }
   
+  if (method == "ARFIMA") {
+    train %<>%
+      dplyr::select(RV.1.Ahead) %>%
+      as.matrix()
+    
+    mod <- forecast::arfima(
+      y = train 
+    )
+    
+    pred <- predict(mod, n.head = 1)
+  }
+  
   if (method == "XGB") {
     trainResponse <- train %>%
       dplyr::select(RV.1.Ahead) %>%
@@ -109,7 +121,9 @@ funRolling <- function(
     )
   }
 
-  pred <- stats::predict(mod, test)
+  if (method != "ARFIMA") {
+    pred <- stats::predict(mod, test)
+  }
   
   # print(paste("Done:", date))
   return(
@@ -161,26 +175,35 @@ funRollingPred <- function(
       ) %>%
       dplyr::filter(Start >= "2008-10-01")
     
-    print(
-      paste(method, model, trainFreq)
-    )
-    data[[model]] %>%
+    errors <- data[[model]] %>%
       dplyr::filter(Start >= "2007-10-01") %>%
       dplyr::summarise(
         RMSE = sqrt(mean((RV - RVPred)^2)),
         MAPE = mean(abs((RV - RVPred)/RV))*100
       ) %>%
-      print()
+      dplyr::mutate(
+        model = paste(method, model, trainFreq, sep = "-")
+      ) %>%
+      dplyr::bind_rows(errors, .)
+    
+    print(
+      paste(method, model, trainFreq, sep = "-")
+    )
   }
   
-  return(data)
+  return(
+    list(
+      data = data,
+      errors = errors
+    )
+  )
 }
 
 
 ### Parameters ---------------------------------------------------------------
 
 paramRFbase <- list(
-  ntree = 4,
+  ntree = 512,
   mtry = 2,
   maxnodes = 6 
 )
@@ -190,9 +213,9 @@ paramRFbaseLog <- list(
   maxnodes = 10 
 )
 paramRFextended <- list(
-  ntree = 2,
-  mtry = 3,
-  maxnodes = 9 
+  ntree = 128,
+  mtry = 2,
+  maxnodes = 10 
 )
 paramRFextendedLog <- list(
   ntree = 256,
@@ -241,7 +264,7 @@ paramXGBextendedLog <- list(
     objective = "reg:linear",
     eta = .061,
     max_depth = 2,
-    gamma = 0
+    gamma = 0.8
   )
 )
 
@@ -251,26 +274,34 @@ paramXGBextendedLog <- list(
 
 ### Prediction ---------------------------------------------------------------
 
-methods <- c("OLS", "WLS","RF", "XGB")
+# methods <- c("OLS", "WLS", "RF", "XGB", "ARFIMA")
+methods <- c("ARFIMA")
 models <- c("extended", "base", "extendedLog", "baseLog")
 trainFreqs <- c("daily", "weekly")
+errorTable <- data.frame()
 
 
 for (method in methods) {
   for (trainFreq in trainFreqs) {
-    data <- funRollingPred(
+    rollPred <- funRollingPred(
       method = method,
       trainFreq = trainFreq
     )
     dataLong <- purrr::map_df(
       models,
       funGatherToLongFormat2,
-      data = data
+      data = rollPred$data
     )
+    errorTable %<>%
+      dplyr::bind_rows(., rollPred$errors)
     write.csv(
       dataLong,
       file = paste0("./Data/results", method, trainFreq,".csv"),
       row.names = FALSE
     )
   }
+  # write.table(
+  #   errorTable,
+  #   file = "./Data/modelErrors.txt"
+  # )
 }

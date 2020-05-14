@@ -25,7 +25,7 @@ databaseLog <- dataextendedLog %>%
 
 ### Functions ----------------------------------------------------------------
 funRolling <- function(
-  date, dat, method, trainFreq, param
+  date, dat, method, trainFreq, param, model
 ) {
   
   train <- dat %>%
@@ -90,7 +90,7 @@ funRolling <- function(
       y = train 
     )
     
-    pred <- predict(mod, n.head = 1)
+    pred <- predict(mod, n.head = 1)$`Point Forecast`
   }
   
   if (method == "XGB") {
@@ -125,15 +125,29 @@ funRolling <- function(
     pred <- stats::predict(mod, test)
   }
   
-  # print(paste("Done:", date))
-  return(
-    data.frame(
-      "Start" = theseDates,
-      "RV" = if (method == "XGB") as.double(testResponse) 
-             else test$RV.1.Ahead,
-      "RVPred" = pred)
+  print(
+    paste(
+      paste(method, model, trainFreq, sep = "-"), "Done:", date)
   )
   
+  if (model %in% c("baseLog", "extendedLog")) {
+    return(
+      data.frame(
+        "Start" = theseDates,
+        "RV" = if (method == "XGB") as.double( exp(testResponse) )
+               else exp(test$RV.1.Ahead),
+        "RVPred" = exp(pred) )
+    )
+  }
+  else {
+    return(
+      data.frame(
+        "Start" = theseDates,
+        "RV" = if (method == "XGB") as.double(testResponse) 
+               else test$RV.1.Ahead,
+        "RVPred" = pred)
+    )
+  }
 }
 
 
@@ -156,7 +170,7 @@ funRollingPred <- function(
   data <- list()
   for (model in c("extended", "base", "extendedLog", "baseLog")) {
     data[[model]] <- dates %>%
-      dplyr::filter( Start >= as.POSIXct("2007-10-01") %m+% 
+      dplyr::filter( Start >= as.POSIXct("1999-02-04") %m+% 
                       lubridate::years(1)
       ) %>%
       {
@@ -171,9 +185,9 @@ funRollingPred <- function(
         dat = get( paste0("data", model) ), 
         trainFreq = trainFreq,
         method = method,
-        param = get( paste0("param", method, model))
-      ) %>%
-      dplyr::filter(Start >= "2008-10-01")
+        param = get( paste0("param", method, model)),
+        model = model
+      )
     
     errors <- data[[model]] %>%
       dplyr::filter(Start >= "2007-10-01") %>%
@@ -186,9 +200,9 @@ funRollingPred <- function(
       ) %>%
       dplyr::bind_rows(errors, .)
     
-    print(
-      paste(method, model, trainFreq, sep = "-")
-    )
+    # print(
+    #   paste(method, model, trainFreq, sep = "-")
+    # )
   }
   
   return(
@@ -274,8 +288,7 @@ paramXGBextendedLog <- list(
 
 ### Prediction ---------------------------------------------------------------
 
-# methods <- c("OLS", "WLS", "RF", "XGB", "ARFIMA")
-methods <- c("ARFIMA")
+methods <- c("ARFIMA", "OLS", "WLS", "RF", "XGB")
 models <- c("extended", "base", "extendedLog", "baseLog")
 trainFreqs <- c("daily", "weekly")
 errorTable <- data.frame()
@@ -300,8 +313,8 @@ for (method in methods) {
       row.names = FALSE
     )
   }
-  # write.table(
-  #   errorTable,
-  #   file = "./Data/modelErrors.txt"
-  # )
 }
+write.table(
+  errorTable,
+  file = "./Data/modelErrors.txt"
+)

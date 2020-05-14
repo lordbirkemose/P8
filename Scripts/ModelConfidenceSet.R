@@ -1,8 +1,10 @@
 library(magrittr)
 
 # methods <- c("OLS", "WLS", "RF", "XGB", "ARFIMA")
-methods <- c("OLS")
-models <- c("base", "baseLog", "extended", "extendedLog")
+methods <- c("OLS", "WLS", "RF")
+models <- c("base", "extended", "baseLog", "extendedLog")
+# models <- c("base", "extended")
+# models <- c("baseLog", "extendedLog")
 trainFreqs <- c("daily", "weekly")
 Loss <- modelnames <- NULL
 
@@ -15,7 +17,7 @@ for (method in methods) {
         tidyr::spread(key = Var, value = Value) %>% 
         dplyr::mutate(Start = as.POSIXct(Start)) %>%  
         dplyr::filter(Start >= "2007-10-01") %$%
-        MCS::LossVol(RV, RVPred) %>%
+        MCS::LossVol(RV, RVPred, which = "SE2") %>%
         cbind(Loss, .)
       modelnames %<>%
         cbind(., paste0(model, method, trainFreq))

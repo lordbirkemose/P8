@@ -72,15 +72,15 @@ funAcfPlot <- function(data, lag.max = 50, include.lag.zero = FALSE) {
 # Results plot
 funResultsPlots <- function(data, labelsData) {
   
-  data %<>% dplyr::filter(Start >= as.Date("2005-01-01"))
+  data %<>% dplyr::filter(Start >= as.Date("2006-01-01"))
   
   textData <- tibble::tibble(
     label = c(rep("In-sample", 4), rep("Out-of-sample", 4)),
-    x = c(rep(as.Date("2006-04-01"), 4), rep(as.Date("2008-11-01"), 4))
+    x = c(rep(as.Date("2006-10-01"), 4), rep(as.Date("2008-11-01"), 4))
   )
   
   p <- ggplot(data = data) +
-    geom_line(aes(x = Start, y = Value, color = Var)) +
+    geom_line(aes(x = Start, y = Value, color = Var), alpha = 0.8) +
     labs(
       # title = "OLS",
       x = "Time",
@@ -103,14 +103,14 @@ funResultsPlots <- function(data, labelsData) {
     themeLegend +
     theme(strip.text.x = element_text(size = 10)) +
     facet_wrap(
-      Type~ .,
+      ~Type,
       scales = "free",
       labeller = labeller(Type = labelsData)
     ) +
     annotate(
       geom = "segment",
       y = -Inf, yend = -Inf,
-      x = as.Date("2005-01-01"), xend = as.Date("2009-12-31"),
+      x = as.Date("2006-01-01"), xend = as.Date("2009-12-31"),
       color = "grey",
       size = 11
     ) +
@@ -413,11 +413,17 @@ ggAcf(
 ### Results: OLS -------------------------------------------------------------
 dataOLS <- read.csv("./Data/resultsOLS.csv") %>%
   as_tibble() %>%
-  mutate(Start = as.Date(Start))
+  mutate(Start = as.Date(Start)) %>%
+  mutate(
+    Type = factor(
+      Type,
+      levels = c('baseOLS', 'baseLogOLS', 'extendedOLS', 'extendedLogOLS')
+    )
+  )
 
 labelsOLS <- c(
-  baseLogOLS = "Base HAR Log", baseOLS = "Base HAR",
-  extendedLogOLS = "Extended HAR Log", extendedOLS = "Extended HAR"
+  baseOLS = "Base HAR", baseLogOLS = "Base HAR Log",
+  extendedOLS = "Extended HAR", extendedLogOLS = "Extended HAR Log"
 )
   
 funResultsPlots(dataOLS, labelsOLS)
@@ -430,7 +436,14 @@ funResultsPlots(dataOLS, labelsOLS)
 ### Results: WLS -------------------------------------------------------------
 dataWLS <- read.csv("./Data/resultsWLS.csv") %>%
   as_tibble() %>%
-  mutate(Start = as.Date(Start))
+  mutate(Start = as.Date(Start)) %>%
+  mutate(
+    Type = factor(
+      Type,
+      levels = c('baseWLS', 'baseLogWLS', 'extendedWLS', 'extendedLogWLS')
+    )
+  )
+
 
 labelsWLS <- c(
   baseLogWLS = "Base HAR Log", baseWLS = "Base HAR",
@@ -443,3 +456,16 @@ funResultsPlots(dataWLS, labelsWLS)
 #   file = paste0("./Plots/","WLS",".eps"),
 #   width =  9, height = 6.5 , device = cairo_ps , dpi = 600
 # )
+
+
+### Results: RF --------------------------------------------------------------
+dataRF <- read.csv("./Data/resultsOLSweekly.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start))
+
+labelsRF <- c(
+  base = "Base HAR", extended = "Extended HAR",
+  baseLog = "Base HAR Log", extendedLog = "Extended HAR Log"
+)
+
+funResultsPlots(dataRF, labelsRF)

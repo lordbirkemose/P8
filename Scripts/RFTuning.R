@@ -18,40 +18,18 @@ dataLogBase <- dataLog %>%
   dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
 
 ### Functions ----------------------------------------------------------------
-funCrossValidation <- function(
-  dat, date, ntree, mtry, maxnodes
-) {
+funCrossValidation <- function(dat, date, ntree, mtry, maxnodes) {
   train <- dat %>%
-    dplyr::filter(Start < date) %>%
-    dplyr::select(- c(Start, RV.1.Ahead)) %>%
-    as.matrix()
-  
-  trainLabel <- dat %>%
-    dplyr::select(Start, RV.1.Ahead) %>%
-    dplyr::filter(Start < date) %>%
-    dplyr::select(-Start) %>%
-    as.matrix()
+    dplyr::filter(Start < date)
   
   vali <- dat %>%
     dplyr::filter(
       Start > date,
       Start <= date + lubridate::weeks(1)
-    ) %>%
-    dplyr::select(- c(Start, RV.1.Ahead)) %>%
-    as.matrix()
-  
-  valiLabel <- dat %>%
-    dplyr::select(Start, RV.1.Ahead) %>%
-    dplyr::filter(
-      Start > date,
-      Start <= date + lubridate::weeks(1)
-    ) %>%
-    dplyr::select(-Start) %>%
-    as.matrix()
+    )
   
   mod <- randomForest::randomForest(
-    x = train,
-    y = trainLabel,
+    RV.1.Ahead ~ . - Start,
     data = train,
     ntree = ntree,
     mtry = mtry,
@@ -60,23 +38,23 @@ funCrossValidation <- function(
   
   pred <- predict(mod, vali)
   
-  # print(paste("Done:", date))
-  oosError <- sqrt(mean((valiLabel - pred)^2))
+  oosError <- sqrt(mean((vali$RV.1.Ahead - pred)^2))
   
+  print(paste("Done:", date))
   return(list("oosError" = oosError))
 }
 
 ### Grid ---------------------------------------------------------------------
-
 hyperParamGrid <- expand.grid(
-  ntree = 2^(0:10),
+  ntree = 2^(5:12),
   mtry = 1:4,
-  maxnodes = 1:10 
+  maxnodes = seq(10, 130, 10)
 )
 
 ### Tuning -------------------------------------------------------------------
+mc.cores <- parallel::detectCores()/2
 
-paramTuningRF <- mapply(
+paramTuningRF <- parallel::mcmapply(
   function(ntree, mtry, maxnodes, check) {
     errorRolling <- data$Start %>%
       lubridate::floor_date(., unit = "week") %>%
@@ -109,11 +87,15 @@ paramTuningRF <- mapply(
   ntree = hyperParamGrid$ntree,
   mtry = hyperParamGrid$mtry,
   maxnodes = hyperParamGrid$maxnodes,
-  check = 1:nrow(hyperParamGrid)
+  check = 1:nrow(hyperParamGrid),
+  mc.cores = mc.cores
+)
+save(
+  paramTuningRF,
+  file = "./Rdata/paramTuningRF.RData"
 )
 
-
-paramTuningRFLog <- mapply(
+paramTuningRFLog <- parallel::mcmapply(
   function(ntree, mtry, maxnodes, check) {
     errorRolling <- dataLog$Start %>%
       lubridate::floor_date(., unit = "week") %>%
@@ -146,11 +128,15 @@ paramTuningRFLog <- mapply(
   ntree = hyperParamGrid$ntree,
   mtry = hyperParamGrid$mtry,
   maxnodes = hyperParamGrid$maxnodes,
-  check = 1:nrow(hyperParamGrid)
+  check = 1:nrow(hyperParamGrid),
+  mc.cores = mc.cores
+)
+save(
+  paramTuningRFLog,
+  file = "./Rdata/paramTuningRFLog.RData"
 )
 
-
-paramTuningRFBase <- mapply(
+paramTuningRFBase <- parallel::mcmapply(
   function(ntree, mtry, maxnodes, check) {
     errorRolling <- dataBase$Start %>%
       lubridate::floor_date(., unit = "week") %>%
@@ -183,11 +169,15 @@ paramTuningRFBase <- mapply(
   ntree = hyperParamGrid$ntree,
   mtry = hyperParamGrid$mtry,
   maxnodes = hyperParamGrid$maxnodes,
-  check = 1:nrow(hyperParamGrid)
+  check = 1:nrow(hyperParamGrid),
+  mc.cores = mc.cores
+)
+save(
+  paramTuningRFBase,
+  file = "./Rdata/paramTuningRFBase.RData"
 )
 
-
-paramTuningRFBaseLog <- mapply(
+paramTuningRFBaseLog <- parallel::mcmapply(
   function(ntree, mtry, maxnodes, check) {
     errorRolling <- dataLogBase$Start %>%
       lubridate::floor_date(., unit = "week") %>%
@@ -220,6 +210,10 @@ paramTuningRFBaseLog <- mapply(
   ntree = hyperParamGrid$ntree,
   mtry = hyperParamGrid$mtry,
   maxnodes = hyperParamGrid$maxnodes,
-  check = 1:nrow(hyperParamGrid)
+  check = 1:nrow(hyperParamGrid),
+  mc.cores = mc.cores
 )
-
+save(
+  paramTuningRFBaseLog,
+  file = "./Rdata/paramTuningRFBaseLog.RData"
+)

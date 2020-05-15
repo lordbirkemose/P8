@@ -12,7 +12,7 @@ dataLog <- funGetDataHAR(model = "extendedLog", test = TRUE)
 
 ### Functions ----------------------------------------------------------------
 funCrossValidation <- function(
-  dat, date, nrounds, eta, max_depth, early_stop_round
+  dat, date, nrounds, eta, max_depth, early_stop_round, gamma
 ) {
   train <- dat %>%
     dplyr::filter(Start < date) %>%
@@ -56,7 +56,7 @@ funCrossValidation <- function(
       objective = "reg:linear",
       eta = eta,
       max_depth = max_depth,
-      gamma = 0
+      gamma = gamma
     ),
     nrounds = nrounds,
     early_stop_round = early_stop_round,
@@ -86,7 +86,8 @@ XGBbase <- data$Start %>%
     nrounds = 200,
     eta = 0.093,
     max_depth = 1,
-    early_stop_round = 20
+    early_stop_round = 20,
+    gamma = 1
   )
 
 XGBBaseLog <- data$Start %>%
@@ -101,7 +102,8 @@ XGBBaseLog <- data$Start %>%
     nrounds = 200,
     eta = 0.053,
     max_depth = 1,
-    early_stop_round = 20
+    early_stop_round = 20,
+    gamma = 1
   )
 
 XGBExtended <- data$Start %>%
@@ -115,7 +117,8 @@ XGBExtended <- data$Start %>%
     nrounds = 200,
     eta = 0.097,
     max_depth = 1,
-    early_stop_round = 20
+    early_stop_round = 20,
+    gamma = 1
   )
 
 XGBExtendedLog <- data$Start %>%
@@ -129,7 +132,8 @@ XGBExtendedLog <- data$Start %>%
     nrounds = 200,
     eta = 0.061,
     max_depth = 2,
-    early_stop_round = 20
+    early_stop_round = 20,
+    gamma = 1
   )
 
 ### Error measurements -------------------------------------------------------
@@ -162,12 +166,12 @@ XGBBaseLog %>%
   )
 
 ### Save ---------------------------------------------------------------------
-dataToSave <- c("XGBExtended", "XGBbase", "XGBExtendedLog", "XGBBaseLog")
-
-dataLong <- purrr::map_df(dataToSave, funGatherToLongFormat)
-
-write.csv(
-  dataLong,
-  file = "./Data/resultsXGB.csv",
-  row.names = FALSE
-)
+# dataToSave <- c("XGBExtended", "XGBbase", "XGBExtendedLog", "XGBBaseLog")
+# 
+# dataLong <- purrr::map_df(dataToSave, funGatherToLongFormat)
+# 
+# write.csv(
+#   dataLong,
+#   file = "./Data/resultsXGB.csv",
+#   row.names = FALSE
+# )

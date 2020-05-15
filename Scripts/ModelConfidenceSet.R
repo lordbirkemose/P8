@@ -27,7 +27,7 @@ MCSmodels <- c(
   "baseOLSdaily", "extendedOLSdaily", "baseLogOLSdaily", "extendedLogOLSdaily",
   "baseWLSdaily", "extendedWLSdaily", "baseLogWLSweekly", "extendedLogWLSweekly",
   "baseRFdaily", "extendedRFdaily", "baseLogRFdaily", "extendedLogRFdaily",
-  "baseXGBdaily", "extendedXGBweekly", "baseLogXGBdaily", "extendedLogXGBweekly",
+  "baseXGBweekly", "extendedXGBdaily", "baseLogXGBweekly", "extendedLogXGBweekly",
   "baseARFIMAdaily", "baseLogARFIMAdaily"
 )
 

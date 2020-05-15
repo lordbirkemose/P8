@@ -411,7 +411,7 @@ ggAcf(
 # )
 
 ### Results: OLS -------------------------------------------------------------
-dataOLS <- read.csv("./Data/resultsOLS.csv") %>%
+dataOLS <- read.csv("./Data/resultsOLSdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start)) %>%
   mutate(

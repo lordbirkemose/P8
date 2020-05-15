@@ -224,24 +224,24 @@ funRollingPred <- function(
 ### Parameters ---------------------------------------------------------------
 
 paramRFbase <- list(
-  ntree = 512,
-  mtry = 2,
-  maxnodes = 6 
+  ntree = 128,
+  mtry = 1,
+  maxnodes = 80 
 )
 paramRFbaseLog <- list(
   ntree = 1024,
-  mtry = 2,
-  maxnodes = 10 
+  mtry = 1,
+  maxnodes = 80 
 )
 paramRFextended <- list(
-  ntree = 128,
+  ntree = 64,
   mtry = 2,
-  maxnodes = 10 
+  maxnodes = 70 
 )
 paramRFextendedLog <- list(
-  ntree = 256,
-  mtry = 3,
-  maxnodes = 10 
+  ntree = 1024,
+  mtry = 2,
+  maxnodes = 100 
 )
 
 paramXGBbase <- list(
@@ -294,7 +294,7 @@ paramXGBextendedLog <- list(
 methods <- c("ARFIMA", "OLS", "WLS", "RF", "XGB")
 models <- c("extended", "base", "extendedLog", "baseLog")
 trainFreqs <- c("daily", "weekly")
-errorTable <- errros <- data.frame()
+errorTable <- errors <- data.frame()
 
 for (method in methods) {
   for (trainFreq in trainFreqs) {

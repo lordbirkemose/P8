@@ -82,6 +82,7 @@ funRolling <- function(
   }
   
   if (method == "ARFIMA") {
+
     train %<>%
       dplyr::select(RV.1.Ahead) %>%
       as.matrix()
@@ -89,8 +90,14 @@ funRolling <- function(
     mod <- forecast::arfima(
       y = train 
     )
-    
-    pred <- predict(mod, n.head = 1)$`Point Forecast`
+
+    if (trainFreq == "weekly") {
+      pred <- forecast(
+        object = mod, h = length(test)
+      )[["mean"]][1:length(test)]
+    } else {
+      pred <- forecast::forecast(object = mod, h = 1)[["mean"]][1]
+    }
   }
   
   if (method == "XGB") {
@@ -129,7 +136,7 @@ funRolling <- function(
     paste(
       paste(method, model, trainFreq, sep = "-"), "Done:", date)
   )
-  
+
   if (model %in% c("baseLog", "extendedLog")) {
     return(
       data.frame(
@@ -282,17 +289,13 @@ paramXGBextendedLog <- list(
   )
 )
 
-
-
-
-
 ### Prediction ---------------------------------------------------------------
 
 methods <- c("ARFIMA", "OLS", "WLS", "RF", "XGB")
 models <- c("extended", "base", "extendedLog", "baseLog")
 trainFreqs <- c("daily", "weekly")
 errorTable <- data.frame()
-
+errors <- list()
 
 for (method in methods) {
   for (trainFreq in trainFreqs) {
@@ -314,6 +317,7 @@ for (method in methods) {
     )
   }
 }
+
 write.table(
   errorTable,
   file = "./Data/modelErrors.txt"

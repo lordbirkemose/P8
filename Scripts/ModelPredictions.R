@@ -294,8 +294,7 @@ paramXGBextendedLog <- list(
 methods <- c("ARFIMA", "OLS", "WLS", "RF", "XGB")
 models <- c("extended", "base", "extendedLog", "baseLog")
 trainFreqs <- c("daily", "weekly")
-errorTable <- data.frame()
-errors <- list()
+errorTable <- errros <- data.frame()
 
 for (method in methods) {
   for (trainFreq in trainFreqs) {

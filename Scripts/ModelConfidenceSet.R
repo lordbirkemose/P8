@@ -31,6 +31,7 @@ MCSmodels <- c(
   "baseARFIMAdaily", "baseLogARFIMAdaily"
 )
 
+set.seed(2020)
 modelSet <- MCS::MCSprocedure(Loss = Loss[, MCSmodels], 
                   alpha = 0.05, 
                   B = 5000, 

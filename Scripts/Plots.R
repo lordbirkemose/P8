@@ -70,7 +70,7 @@ funAcfPlot <- function(data, lag.max = 50, include.lag.zero = FALSE) {
 }
 
 # Results plot
-funResultsPlots <- function(data, labelsData) {
+funResultsPlots <- function(data) {
   
   data %<>% dplyr::filter(Start >= as.Date("2006-01-01"))
   
@@ -79,8 +79,13 @@ funResultsPlots <- function(data, labelsData) {
     x = c(rep(as.Date("2006-10-01"), 4), rep(as.Date("2008-11-01"), 4))
   )
   
+  labelsData <- c(
+    base = "Base HAR", baseLog = "Base HAR Log",
+    extended = "Extended HAR", extendedLog = "Extended HAR Log"
+  )
+
   p <- ggplot(data = data) +
-    geom_line(aes(x = Start, y = Value, color = Var), alpha = 0.8) +
+    geom_line(aes(x = Start, y = Value, color = Var), size = 0.3) +
     labs(
       # title = "OLS",
       x = "Time",
@@ -98,14 +103,15 @@ funResultsPlots <- function(data, labelsData) {
       breaks = pretty(data$Start, n = 5)
     ) +
     scale_y_continuous(
-      expand = expand_scale(mult = c(.1, .1))
+      expand = expand_scale(mult = c(.15, .1))
     ) +
     themeLegend +
     theme(strip.text.x = element_text(size = 10)) +
     facet_wrap(
       ~Type,
       scales = "free",
-      labeller = labeller(Type = labelsData)
+      labeller = labeller(Type = labelsData),
+      ncol = 1
     ) +
     annotate(
       geom = "segment",
@@ -417,55 +423,249 @@ dataOLS <- read.csv("./Data/resultsOLSdaily.csv") %>%
   mutate(
     Type = factor(
       Type,
-      levels = c('baseOLS', 'baseLogOLS', 'extendedOLS', 'extendedLogOLS')
+      levels = c('base', 'baseLog', 'extended', 'extendedLog')
     )
   )
 
-labelsOLS <- c(
-  baseOLS = "Base HAR", baseLogOLS = "Base HAR Log",
-  extendedOLS = "Extended HAR", extendedLogOLS = "Extended HAR Log"
-)
-  
-funResultsPlots(dataOLS, labelsOLS)
+funResultsPlots(dataOLS)
 
-# ggsave(
-#   file = paste0("./Plots/","OLS",".eps"),
-#   width =  9, height = 6.5 , device = cairo_ps , dpi = 600
-# )
+ggsave(
+  file = paste0("./Plots/","OLS",".eps"),
+  device = cairo_ps , dpi = 600,
+  height = 230, width = 150, units = "mm"
+)
 
 ### Results: WLS -------------------------------------------------------------
-dataWLS <- read.csv("./Data/resultsWLS.csv") %>%
+dataWLSdaily <- read.csv("./Data/resultsWLSdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start)) %>%
+  filter(Type %in% c("base", "extended"))
+dataWLSweekly <- read.csv("./Data/resultsWLSweekly.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start)) %>%
+  filter(Type %in% c("baseLog", "extendedLog"))
+dataWLS <- rbind(dataWLSdaily, dataWLSweekly) %>%
   mutate(
     Type = factor(
       Type,
-      levels = c('baseWLS', 'baseLogWLS', 'extendedWLS', 'extendedLogWLS')
+      levels = c('base', 'baseLog', 'extended', 'extendedLog')
     )
   )
 
+funResultsPlots(dataWLS)
 
-labelsWLS <- c(
-  baseLogWLS = "Base HAR Log", baseWLS = "Base HAR",
-  extendedLogWLS = "Extended HAR Log", extendedWLS = "Extended HAR"
+ggsave(
+  file = paste0("./Plots/","WLS",".eps"),
+  device = cairo_ps , dpi = 600,
+  height = 230, width = 150, units = "mm"
 )
 
-funResultsPlots(dataWLS, labelsWLS)
-
-# ggsave(
-#   file = paste0("./Plots/","WLS",".eps"),
-#   width =  9, height = 6.5 , device = cairo_ps , dpi = 600
-# )
-
-
 ### Results: RF --------------------------------------------------------------
-dataRF <- read.csv("./Data/resultsOLSweekly.csv") %>%
+dataRF <- read.csv("./Data/resultsRFdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start))
 
-labelsRF <- c(
-  base = "Base HAR", extended = "Extended HAR",
-  baseLog = "Base HAR Log", extendedLog = "Extended HAR Log"
+funResultsPlots(dataRF)
+
+ggsave(
+  file = paste0("./Plots/","RF",".eps"),
+  device = cairo_ps , dpi = 600,
+  height = 230, width = 150, units = "mm"
 )
 
-funResultsPlots(dataRF, labelsRF)
+### Results: XGB -------------------------------------------------------------
+dataXGBdaily <- read.csv("./Data/resultsXGBdaily.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start)) %>%
+  filter(Type %in% c('extended'))
+dataXGBweekly <- read.csv("./Data/resultsXGBweekly.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start)) %>%
+  filter(Type %in% c("base", "baseLog", "extendedLog"))
+dataXGB <- rbind(dataXGBdaily, dataXGBweekly) %>%
+  mutate(
+    Type = factor(
+      Type,
+      levels = c('base', 'baseLog', 'extended', 'extendedLog')
+    )
+  )
+
+funResultsPlots(dataXGB)
+
+ggsave(
+  file = paste0("./Plots/","XGB",".eps"),
+  device = cairo_ps , dpi = 600,
+  height = 230, width = 150, units = "mm"
+)
+
+### Results: ARFIMA ----------------------------------------------------------
+dataARFIMA <- read.csv("./Data/resultsARFIMAdaily.csv") %>%
+  as_tibble() %>%
+  mutate(Start = as.Date(Start)) %>%
+  filter(Type %in% c("base", "baseLog")) %>%
+  mutate(
+    Type = factor(
+      Type,
+      levels = c('base', 'baseLog')
+    )
+  ) %>%
+  dplyr::filter(Start >= as.Date("2006-01-01"))
+
+textData <- tibble::tibble(
+  label = c(rep("In-sample", 4), rep("Out-of-sample", 4)),
+  x = c(rep(as.Date("2006-10-01"), 4), rep(as.Date("2008-11-01"), 4))
+)
+
+labelsData <- c(
+  base = "RV", baseLog = "Log RV"
+)
+
+ggplot(data = dataARFIMA) +
+  geom_line(aes(x = Start, y = Value, color = Var), alpha = 0.8) +
+  labs(
+    # title = "OLS",
+    x = "Time",
+    y = "Value"
+  ) +
+  scale_colour_manual(
+    name = "",
+    labels = c(
+      "Actual Realized Volatility", "Predicted Realized Volatility"
+    ),
+    values = colors[2:3]
+  ) +
+  scale_x_date(
+    date_labels = "%Y",
+    breaks = pretty(dataARFIMA$Start, n = 5)
+  ) +
+  scale_y_continuous(
+    expand = expand_scale(mult = c(.15, .1))
+  ) +
+  themeLegend +
+  theme(strip.text.x = element_text(size = 10)) +
+  facet_wrap(
+    ~Type,
+    scales = "free",
+    labeller = labeller(Type = labelsData),
+    ncol = 1
+  ) +
+  annotate(
+    geom = "segment",
+    y = -Inf, yend = -Inf,
+    x = as.Date("2006-01-01"), xend = as.Date("2009-12-31"),
+    color = "grey",
+    size = 11
+  ) +
+  geom_text(
+    data = textData,
+    mapping = aes(x = x, y = -Inf, label = label),
+    vjust = -.5,
+    size = 3
+  ) +
+  geom_vline(
+    xintercept = as.Date("2007-10-01"),
+    linetype = "longdash",
+    color = "black"
+  )
+
+ggsave(
+  file = paste0("./Plots/","ARFIMA",".eps"),
+  device = cairo_ps , dpi = 600,
+  height = 120, width = 150, units = "mm"
+)
+
+### MAPE plot ----------------------------------------------------------------
+dataMAPE <- left_join_multi(
+  dataOLS %>% spread(key = Var, value = Value) %>%
+    mutate(OLS = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  dataWLS %>% spread(key = Var, value = Value) %>%
+    mutate(WLS = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  dataRF %>% spread(key = Var, value = Value) %>%
+    mutate(`Random Forest` = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  dataXGB %>% spread(key = Var, value = Value) %>%
+    mutate(`Extreme Gradient Boosting` = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  read.csv("./Data/resultsARFIMAdaily.csv") %>%
+    as_tibble() %>%
+    mutate(Start = as.Date(Start)) %>%
+    spread(key = Var, value = Value) %>%
+    mutate(ARFIMA = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  by = c("Start", "Type")
+) %>%
+  gather(key = "Var", value = "Value", -c(Start, Type)) %>%
+  filter(Start >= "2006-01-01") %>%
+  mutate(
+    Var = factor(
+      Var,
+      levels = c(
+        'ARFIMA', 'OLS', 'WLS', 'Random Forest', 'Extreme Gradient Boosting'
+      )
+    )
+  )
+
+textData <- tibble::tibble(
+  label = c(rep("In-sample", 4), rep("Out-of-sample", 4)),
+  x = c(rep(as.Date("2006-10-01"), 4), rep(as.Date("2008-11-01"), 4))
+)
+
+labelsData <- c(
+  base = "Base HAR", baseLog = "Base HAR Log",
+  extended = "Extended HAR", extendedLog = "Extended HAR Log"
+)
+
+ggplot(data = dataMAPE) +
+  geom_line(aes(x = Start, y = Value, color = Var), size = 0.3) +
+  labs(
+    # title = "OLS",
+    x = "Time",
+    y = "Absolute Percentage Error"
+  ) +
+  scale_colour_manual(
+    name = "",
+    values = colors[c(5, 1, 4, 2, 3)]
+  ) +
+  scale_x_date(
+    date_labels = "%Y",
+    breaks = pretty(dataMAPE$Start, n = 5)
+  ) +
+  scale_y_continuous(
+    expand = expand_scale(mult = c(.15, .1))
+  ) +
+  themeLegend +
+  theme(strip.text.x = element_text(size = 10)) +
+  facet_wrap(
+    ~Type,
+    # scales = "free",
+    scales = "free_x",
+    labeller = labeller(Type = labelsData),
+    ncol = 1
+  ) +
+  annotate(
+    geom = "segment",
+    y = -Inf, yend = -Inf,
+    x = as.Date("2006-01-01"), xend = as.Date("2009-12-31"),
+    color = "grey",
+    size = 11
+  ) +
+  geom_text(
+    data = textData,
+    mapping = aes(x = x, y = -Inf, label = label),
+    vjust = -.5,
+    size = 3
+  ) +
+  geom_vline(
+    xintercept = as.Date("2007-10-01"),
+    linetype = "longdash",
+    color = "black"
+  )
+  # guides(colour = guide_legend(override.aes = list(alpha = 1)))
+
+ggsave(
+  file = paste0("./Plots/","MAPE",".eps"),
+  device = cairo_ps , dpi = 600,
+  height = 230, width = 150, units = "mm"
+)

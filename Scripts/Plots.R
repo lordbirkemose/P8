@@ -174,7 +174,7 @@ ggplot(data = dataRaw) +
       "Synchronized" = colors[1]
     )
   ) +
-  scale_x_datetime(breaks = date_breaks("1 hour"), date_labels = "%H:%M") +
+  scale_x_datetime(breaks = "1 hour", date_labels = "%H:%M") +
   xlab("Time") +
   ylab("Price") +
   themeLegend
@@ -261,12 +261,12 @@ ggsave(
 )
 
 ### Feature selection --------------------------------------------------------
-load("./Rdata/importanceFeatureSelection.Rdata")
+load("./Rdata/DirectionalVolatility/importanceFeatureSelection.Rdata")
 
 importanceFeatureSelectionTidy <- importanceFeatureSelection %>%
   dplyr::select(
     Indicator,
-    `Mean Decrease Acuracy` = MDA,
+    `Mean Decrease Accuracy` = MDA,
     `Mean Decrease Impurity` = MDG
   ) %>%
   tidyr::gather(key = "var", value = "Value", -Indicator)
@@ -279,7 +279,7 @@ ggplot(data = importanceFeatureSelectionTidy) +
   geom_hline(
     aes(
     yintercept = importanceFeatureSelection$AverageMDA[1],
-    linetype = "Average Mean Decrease Acuracy"
+    linetype = "Average Mean Decrease Accuracy"
     ),
     color = colors[2]
   ) +
@@ -416,7 +416,7 @@ ggAcf(
 #   width =  9, height = 3 , device = cairo_ps , dpi = 600
 # )
 
-### Results: OLS -------------------------------------------------------------
+### Results ------------------------------------------------------------------
 dataOLS <- read.csv("./Data/resultsOLSdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start)) %>%
@@ -429,13 +429,13 @@ dataOLS <- read.csv("./Data/resultsOLSdaily.csv") %>%
 
 funResultsPlots(dataOLS)
 
-ggsave(
-  file = paste0("./Plots/","OLS",".eps"),
-  device = cairo_ps , dpi = 600,
-  height = 230, width = 150, units = "mm"
-)
+# ggsave(
+#   file = paste0("./Plots/","OLS",".eps"),
+#   device = cairo_ps , dpi = 600,
+#   height = 230, width = 150, units = "mm"
+# )
 
-### Results: WLS -------------------------------------------------------------
+## WLS
 dataWLSdaily <- read.csv("./Data/resultsWLSdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start)) %>%
@@ -460,20 +460,20 @@ ggsave(
   height = 230, width = 150, units = "mm"
 )
 
-### Results: RF --------------------------------------------------------------
+## RF
 dataRF <- read.csv("./Data/resultsRFdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start))
 
 funResultsPlots(dataRF)
 
-ggsave(
-  file = paste0("./Plots/","RF",".eps"),
-  device = cairo_ps , dpi = 600,
-  height = 230, width = 150, units = "mm"
-)
+# ggsave(
+#   file = paste0("./Plots/","RF",".eps"),
+#   device = cairo_ps , dpi = 600,
+#   height = 230, width = 150, units = "mm"
+# )
 
-### Results: XGB -------------------------------------------------------------
+## XGB
 dataXGBdaily <- read.csv("./Data/resultsXGBdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start)) %>%
@@ -492,13 +492,13 @@ dataXGB <- rbind(dataXGBdaily, dataXGBweekly) %>%
 
 funResultsPlots(dataXGB)
 
-ggsave(
-  file = paste0("./Plots/","XGB",".eps"),
-  device = cairo_ps , dpi = 600,
-  height = 230, width = 150, units = "mm"
-)
+# ggsave(
+#   file = paste0("./Plots/","XGB",".eps"),
+#   device = cairo_ps , dpi = 600,
+#   height = 230, width = 150, units = "mm"
+# )
 
-### Results: ARFIMA ----------------------------------------------------------
+## ARFIMA
 dataARFIMA <- read.csv("./Data/resultsARFIMAdaily.csv") %>%
   as_tibble() %>%
   mutate(Start = as.Date(Start)) %>%
@@ -521,7 +521,7 @@ labelsData <- c(
 )
 
 ggplot(data = dataARFIMA) +
-  geom_line(aes(x = Start, y = Value, color = Var), alpha = 0.8) +
+  geom_line(aes(x = Start, y = Value, color = Var), size = 0.3) +
   labs(
     # title = "OLS",
     x = "Time",
@@ -568,13 +568,13 @@ ggplot(data = dataARFIMA) +
     color = "black"
   )
 
-ggsave(
-  file = paste0("./Plots/","ARFIMA",".eps"),
-  device = cairo_ps , dpi = 600,
-  height = 120, width = 150, units = "mm"
-)
+# ggsave(
+#   file = paste0("./Plots/","ARFIMA",".eps"),
+#   device = cairo_ps , dpi = 600,
+#   height = 120, width = 150, units = "mm"
+# )
 
-### MAPE plot ----------------------------------------------------------------
+## MAPE plot
 dataMAPE <- left_join_multi(
   dataOLS %>% spread(key = Var, value = Value) %>%
     mutate(OLS = abs((RV - RVPred)/RV)*100) %>%
@@ -664,8 +664,116 @@ ggplot(data = dataMAPE) +
   )
   # guides(colour = guide_legend(override.aes = list(alpha = 1)))
 
-ggsave(
-  file = paste0("./Plots/","MAPE",".eps"),
-  device = cairo_ps , dpi = 600,
-  height = 230, width = 150, units = "mm"
-)
+# ggsave(
+#   file = paste0("./Plots/","MAPE",".eps"),
+#   device = cairo_ps , dpi = 600,
+#   height = 230, width = 150, units = "mm"
+# )
+
+### Front page ---------------------------------------------------------------
+dataFrontPage <- left_join_multi(
+  dataOLS %>% spread(key = Var, value = Value) %>%
+    mutate(OLS = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  dataWLS %>% spread(key = Var, value = Value) %>%
+    mutate(WLS = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  dataRF %>% spread(key = Var, value = Value) %>%
+    mutate(`Random Forest` = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  dataXGB %>% spread(key = Var, value = Value) %>%
+    mutate(`Extreme Gradient Boosting` = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  read.csv("./Data/resultsARFIMAdaily.csv") %>%
+    as_tibble() %>%
+    mutate(Start = as.Date(Start)) %>%
+    spread(key = Var, value = Value) %>%
+    mutate(ARFIMA = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  by = c("Start", "Type")
+) %>%
+  gather(key = "Var", value = "Value", -c(Start, Type)) %>%
+  filter(Start >= "2009-01-01", Type == "extendedLog")
+
+ggplot(data = dataFrontPage) +
+  geom_line(aes(x = Start, y = Value, color = Var)) +
+  scale_colour_manual(
+    name = "",
+    values = colors[c(5, 1, 4, 2, 3)]
+  ) +
+  labs(x = "", y = "") +
+  list(
+    ggplot2::theme_minimal(),
+    ggplot2::theme(
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = ggplot2::element_blank(), 
+      legend.position = "none" ,
+      legend.background = ggplot2::element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_rect(colour = "black", fill=NA, size=1)
+    )
+  )
+
+# ggsave(
+#   file = paste0("./Plots/","frontPage",".eps"),
+#   width =  9, height = 5 , device = cairo_ps , dpi = 600
+# )
+
+
+dataFrontPage2 <- read.csv("./Data/SpyCleaned.gz") %>%
+  tibble::as_tibble() %>%
+  dplyr::mutate(
+    Start = as.POSIXct(Start, format = "%F %T"),
+    Start = format(Start, "%F")
+  ) %>%
+  dplyr::group_by(Start) %>%
+  dplyr::summarise(
+    High = max(Price),
+    Low = min(Price),
+    Close = dplyr::last(Price),
+    Open = dplyr::first(Price)
+  ) %>%
+  mutate(
+    fill = ifelse(Open > Close, "green", "red"),
+    candleUpper = ifelse(Open > Close, Open, Close),
+    candleLower = ifelse(Open < Close, Open, Close),
+    candleMiddle = candleLower
+  ) %>%
+  filter(Start < "1999-06-01")
+
+ggplot(
+  data = dataFrontPage2,
+) +  
+  geom_boxplot(
+    stat = 'identity',
+    aes(
+      x = 1:nrow(dataFrontPage2),
+      lower = candleLower,
+      middle = candleMiddle,
+      upper = candleUpper,
+      ymin = Low,
+      ymax = High,
+      group = Start,
+      fill = fill
+    ),
+    fatten = NULL
+  ) +
+  # geom_line(data = dataFrontPage, aes(x = Start, y = Value, color = Var)) +
+  labs(x = "", y = "") +
+  list(
+    ggplot2::theme_minimal(),
+    ggplot2::theme(
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = ggplot2::element_blank(), 
+      legend.position = "none" ,
+      legend.background = ggplot2::element_blank(),
+      axis.text.x = element_blank(),
+      axis.text.y = element_blank(),
+      axis.ticks = element_blank(),
+      panel.border = element_rect(colour = "black", fill=NA, size=1)
+    )
+  )

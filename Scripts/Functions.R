@@ -13,13 +13,13 @@ funReadCsvFolder <- function(path, nCores) {
       read.csv(paste(path, x, sep = "/"), stringsAsFactors = FALSE) %>%
         dplyr::mutate(
           Start = gsub(".*_|.csv.*", "",  x),
-          Start = as.POSIXct(paste0(Start, utcsec), format="%Y%m%d %H:%M:%S")
+          Start = as.POSIXct(paste0(Start, utcsec), format="%F %T")
         ) %>%
        dplyr::select(-utcsec)
     },
     mc.cores = nCores
-  )
-  dataReturn <- do.call(rbind, dataReturn)
+  ) %>%
+    do.call(rbind, .)
 
   return(dataReturn)
 }

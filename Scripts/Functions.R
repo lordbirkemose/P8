@@ -496,3 +496,87 @@ funGetDataHAR <- function(model = "extended", test = FALSE) {
     return()
 }
 
+funGetDataHAR_v2 <- function(DAH, model = "extended", test = FALSE) {
+  if (!is.element(model, c("base", "baseLog", "extended", "extendedLog")) ) {
+    stop("The specified model is not a function option ",
+         "(base, baseLog, extended, extendedLog)")
+  }
+  if (test) {
+    predDirectionTestXGB <- read.csv("./Data/predDirectionTestXGB.csv") %>%
+      tibble::as_tibble() %>%
+      dplyr::mutate(Start = as.POSIXct(Start, format = "%F")) 
+  }
+  
+  data <- read.csv("./Data/SpyCleaned.gz") %>%
+    tibble::as_tibble() %>%
+    dplyr::mutate(
+      Start = as.POSIXct(Start, format = "%F"),
+      Log.Price = log(Price),
+      Abs.Diff.Price = abs(c(diff(Log.Price), 0)),
+      Abs.Diff.Price.Lag = dplyr::lag(Abs.Diff.Price)
+    ) %>%
+    {
+      if (!test) dplyr::filter(., Start <= "2007-09-30") else .
+    } %>%
+    dplyr::group_by(Start) %>%
+    dplyr::summarise(
+      RV.Daily = sum(diff(Log.Price)^2),
+      Return = diff(Log.Price, lag = 390),
+      N = dplyr::n(),
+      BV.Daily = pi*N/(2*N-2)*sum(Abs.Diff.Price*Abs.Diff.Price.Lag)
+    ) %>%
+    dplyr::mutate(
+      RV.Weekly = zoo::rollmeanr(RV.Daily, k = 5, fill = NA),
+      RV.Monthly = zoo::rollmeanr(RV.Daily, k = 22, fill = NA),
+      Target = dplyr::lead(RV.Daily, n = DAH),
+      RV.Direction = as.numeric(Target/RV.Daily > 1),
+      Pos.Return.Temp = zoo::rollmeanr(Return, k = DAH, fill = NA),
+      Pos.Return = ifelse(Pos.Return.Temp > 0, Pos.Return.Temp, 0),
+      Neg.Return.Temp = zoo::rollmeanr(Return, k = DAH, fill = NA),
+      Neg.Return = ifelse(Neg.Return.Temp < 0, Neg.Return.Temp, 0),
+      RV.Roll = zoo::rollmeanr(RV.Daily, k = DAH, fill = NA),
+      BV.Roll = zoo::rollmeanr(BV.Daily, k = DAH, fill = NA),
+      Jump = pmax(RV.Roll - BV.Roll, 0)
+    ) %>%
+    {
+      if (test) {
+        dplyr::left_join(., predDirectionTestXGB, by = "Start") %>%
+          dplyr::mutate(
+            RV.Direction = ifelse(
+              is.na(RVDirectionPred), RV.Direction, RVDirectionPred
+            )
+          )
+      } else .
+    } %>%
+    dplyr::select(
+      Start, Target, RV.Daily, RV.Weekly, RV.Monthly, Jump,
+      Pos.Return, Neg.Return, RV.Direction
+    )
+  
+  if(model %in% c("baseLog", "extendedLog")) {
+    data %<>%
+      dplyr::mutate(
+        Target = log(Target),
+        RV.Daily = log(RV.Daily),
+        RV.Monthly = log(RV.Monthly),
+        Jump = log(1 + Jump),
+        Pos.Return = log(1 + Pos.Return),
+        Neg.Return = log(1 + abs(Neg.Return))
+      ) %>%
+      tidyr::drop_na()
+    
+    return(data)
+  }
+  
+  if (model %in% c("base", "baseLog")) {
+    data %<>%  
+      dplyr::select(-c(Jump, Pos.Return, Neg.Return, RV.Direction)) %>%
+      tidyr::drop_na()
+    
+    return(data)
+  }
+  
+  data %>% 
+    tidyr::drop_na() %>%
+    return()
+}

@@ -24,17 +24,14 @@ databaseLog <- dataextendedLog %>%
 
 
 ### Functions ----------------------------------------------------------------
-funRolling <- function(
-  date, dat, method, trainFreq, param, model
-) {
+funRolling <- function(date, dat, method, trainFreq, param, model) {
   
   train <- dat %>%
     dplyr::filter(
       Start <  date,
       Start >= date %m-% lubridate::years(1)
     )
-  
-  
+
   test <- dat %>%
     dplyr::filter(
       Start >= date
@@ -158,9 +155,7 @@ funRolling <- function(
 }
 
 
-funRollingPred <- function(
-  method, trainFreq
-) {
+funRollingPred <- function(method, trainFreq) {
   if (!is.element(method, c("OLS","WLS","RF","XGB", "ARFIMA") )) {
     stop("The specified method is not a function option ",
          "(OLS, WLS, RF, XGB)")

@@ -1,10 +1,7 @@
 library(magrittr)
 
-# methods <- c("OLS", "WLS", "RF", "XGB", "ARFIMA")
-methods <- c("OLS", "WLS", "RF")
+methods <- c("OLS", "WLS", "RF", "XGB", "ARFIMA")
 models <- c("base", "extended", "baseLog", "extendedLog")
-# models <- c("base", "extended")
-# models <- c("baseLog", "extendedLog")
 trainFreqs <- c("daily", "weekly")
 Loss <- modelnames <- NULL
 
@@ -17,7 +14,7 @@ for (method in methods) {
         tidyr::spread(key = Var, value = Value) %>% 
         dplyr::mutate(Start = as.POSIXct(Start)) %>%  
         dplyr::filter(Start >= "2007-10-01") %$%
-        MCS::LossVol(RV, RVPred, which = "SE2") %>%
+        MCS::LossVol(RV, RVPred, which = "SE1") %>%
         cbind(Loss, .)
       modelnames %<>%
         cbind(., paste0(model, method, trainFreq))
@@ -26,7 +23,16 @@ for (method in methods) {
 }
 colnames(Loss) <- modelnames
 
-modelSet <- MCS::MCSprocedure(Loss = Loss, 
+MCSmodels <- c(
+  "baseOLSdaily", "extendedOLSdaily", "baseLogOLSdaily", "extendedLogOLSdaily",
+  "baseWLSdaily", "extendedWLSdaily", "baseLogWLSweekly", "extendedLogWLSweekly",
+  "baseRFdaily", "extendedRFdaily", "baseLogRFdaily", "extendedLogRFdaily",
+  "baseXGBweekly", "extendedXGBdaily", "baseLogXGBweekly", "extendedLogXGBweekly",
+  "baseARFIMAdaily", "baseLogARFIMAdaily"
+)
+
+set.seed(2020)
+modelSet <- MCS::MCSprocedure(Loss = Loss[, MCSmodels], 
                   alpha = 0.05, 
                   B = 5000, 
                   statistic = "TR")

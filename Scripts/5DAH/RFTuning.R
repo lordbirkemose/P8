@@ -76,7 +76,7 @@ hyperParamGrid <- expand.grid(
   ntree = 2^(5:12),
   mtry = 1:4,
   maxnodes = seq(10, 130, 10)
-)[1:3,]
+)
 
 ### Tuning -------------------------------------------------------------------
 mc.cores <- parallel::detectCores()/2

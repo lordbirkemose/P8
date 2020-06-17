@@ -502,7 +502,9 @@ funGetDataHAR_v2 <- function(DAH, model = "extended", test = FALSE) {
          "(base, baseLog, extended, extendedLog)")
   }
   if (test) {
-    predDirectionTestXGB <- read.csv("./Data/predDirectionTestXGB.csv") %>%
+    predDirectionTestXGB <- read.csv(
+      paste0('./Data/', DAH ,'DAH/predDirectionTest.csv')
+    ) %>%
       tibble::as_tibble() %>%
       dplyr::mutate(Start = as.POSIXct(Start, format = "%F")) 
   }

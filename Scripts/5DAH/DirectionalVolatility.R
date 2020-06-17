@@ -10,8 +10,7 @@ source("./Scripts/Functions.R", echo = FALSE)
 ### Data ---------------------------------------------------------------------
 data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
-  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
-  dplyr::filter(Start <= "2007-09-30") %$%
+  dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %$%
   left_join_multi(
     funDirectionalVolatility(., lag = -1),
     funAverageTrueRange(.),
@@ -53,7 +52,8 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth, gamma) {
   vali <- dat %>%
     dplyr::filter(Start > date, Start <= date + lubridate::weeks(1))
   
-  Start <- vali[,1]
+  Start <- vali[,1] %>%
+    as.matrix()
   
   vali %<>% dplyr::select(- c(Start, RVDirection)) %>%
     as.matrix()
@@ -118,10 +118,16 @@ predDirectionTest <- funRoll(
   nrounds = 400,
   eta = 0.089,
   max_depth = 1,
-  gamma = 0
+  gamma = 2
 )
 
 write.csv(
   predDirectionTest,
   file = './Data/5DAH/predDirectionTest.csv'
 )
+
+### Hit rate -----------------------------------------------------------------
+hitRate <- predDirectionTest %>%
+  dplyr::mutate(Start = as.POSIXct(Start)) %>%
+  dplyr::left_join(dataTest, by = 'Start') %>%
+  dplyr::summarise(hitRate = 1 - mean(abs(RVDirection - RVDirectionPred)))

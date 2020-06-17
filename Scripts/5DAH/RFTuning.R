@@ -91,6 +91,9 @@ paramTuningRF <- parallel::mcmapply(
   mc.cores = mc.cores
 )
 
+paramTuningRF <- matrix(unlist(paramTuningRF), ncol = 4, byrow = TRUE)
+colnames(paramTuningRF) <- c('ntree', 'mtry', 'maxnodes', 'oosError')
+
 save(
   paramTuningRF,
   file = "./Rdata/5DAH/paramTuningRF.RData"
@@ -105,6 +108,9 @@ paramTuningRFLog <- parallel::mcmapply(
   MoreArgs = list(data = dataLog),
   mc.cores = mc.cores
 )
+
+paramTuningRFLog <- matrix(unlist(paramTuningRFLog), ncol = 4, byrow = TRUE)
+colnames(paramTuningRFLog) <- c('ntree', 'mtry', 'maxnodes', 'oosError')
 
 save(
   paramTuningRFLog,
@@ -121,6 +127,10 @@ paramTuningRFBase <- parallel::mcmapply(
   mc.cores = mc.cores
 )
 
+paramTuningRFBase <- matrix(unlist(paramTuningRFBase), ncol = 4, byrow = TRUE)
+colnames(paramTuningRFBase) <- c('ntree', 'mtry', 'maxnodes', 'oosError')
+
+
 save(
   paramTuningRFBase,
   file = "./Rdata/5DAH/paramTuningRFBase.RData"
@@ -136,7 +146,16 @@ paramTuningRFBaseLog <- parallel::mcmapply(
   mc.cores = mc.cores
 )
 
+paramTuningRFBaseLog <- matrix(
+  unlist(paramTuningRFBaseLog),
+  ncol = 4, byrow = TRUE
+)
+colnames(paramTuningRFBaseLog) <- c('ntree', 'mtry', 'maxnodes', 'oosError')
+
 save(
   paramTuningRFBaseLog,
   file = "./Rdata/5DAH/paramTuningRFBaseLog.RData"
 )
+
+
+

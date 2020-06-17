@@ -148,7 +148,7 @@ ggplot(data = importanceFeatureSelection) +
       yintercept = importanceFeatureSelection$AverageScore[1],
       linetype = 'Average Score'
     ),
-    color = colors[2]
+    color = 'black'
   ) +
   coord_flip() +
   scale_fill_manual(
@@ -158,7 +158,6 @@ ggplot(data = importanceFeatureSelection) +
   scale_linetype_manual(
     name = "",
     values = 2,
-    guide = guide_legend(override.aes = list(color = colors[2]))
   ) +
   guides(
     fill = guide_legend(order = 1),

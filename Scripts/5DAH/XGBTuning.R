@@ -125,6 +125,11 @@ paramTuningXGB <- parallel::mcmapply(
   mc.cores = mc.cores
 )
 
+paramTuningXGB <- matrix(unlist(paramTuningXGB), ncol = 5, byrow = TRUE)
+colnames(paramTuningXGB) <- c(
+  'nrounds', 'eta', 'max_depth', 'early_stop', 'oosError'
+)
+
 save(paramTuningXGB, file = "./Rdata/5DAH/paramTuningXGB.RData")
 
 # Extended Log
@@ -136,6 +141,11 @@ paramTuningXGBLog <- parallel::mcmapply(
   early_stop_round = hyperParamGrid$early_stop_round,
   MoreArgs = list(data = dataLog),
   mc.cores = mc.cores
+)
+
+paramTuningXGBLog <- matrix(unlist(paramTuningXGBLog), ncol = 5, byrow = TRUE)
+colnames(paramTuningXGBLog) <- c(
+  'nrounds', 'eta', 'max_depth', 'early_stop', 'oosError'
 )
 
 save(paramTuningXGBLog, file = "./Rdata/5DAH/paramTuningXGBLog.RData")
@@ -151,6 +161,14 @@ paramTuningXGBBase <- parallel::mcmapply(
   mc.cores = mc.cores
 )
 
+paramTuningXGBBase <- matrix(
+  unlist(paramTuningXGBBase),
+  ncol = 5, byrow = TRUE
+)
+colnames(paramTuningXGBBase) <- c(
+  'nrounds', 'eta', 'max_depth', 'early_stop', 'oosError'
+)
+
 save(paramTuningXGBBase, file = "./Rdata/5DAH/paramTuningXGBBase.RData")
 
 paramTuningXGBBaseLog <- parallel::mcmapply(
@@ -161,6 +179,14 @@ paramTuningXGBBaseLog <- parallel::mcmapply(
   early_stop_round = hyperParamGrid$early_stop_round,
   MoreArgs = list(data = dataLogBase),
   mc.cores = mc.cores
+)
+
+paramTuningXGBBaseLog <- matrix(
+  unlist(paramTuningXGBBaseLog),
+  ncol = 5, byrow = TRUE
+)
+colnames(paramTuningXGBBaseLog) <- c(
+  'nrounds', 'eta', 'max_depth', 'early_stop', 'oosError'
 )
 
 save(paramTuningXGBBaseLog, file = "./Rdata/5DAH/paramTuningXGBBaseLog.RData")

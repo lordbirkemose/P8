@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 source("./Scripts/Functions.R", echo = FALSE)
 
 ### Data ---------------------------------------------------------------------
-indicators <- read.csv("./Data/SpyCleaned.gz") %>%
+data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
   dplyr::filter(Start <= "2007-09-30") %$%
@@ -31,9 +31,14 @@ indicators <- read.csv("./Data/SpyCleaned.gz") %>%
   ) %>%
   dplyr::select(-c(pctD, TR, FR1U, FR2U, FR1L, FR2L, FR3L))
 
-### Functions ----------------------------------------------------------------
+dataTrain <- data %>%
+  dplyr::filter(Start <= "2007-09-30")
 
-funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
+dataTest <- data %>%
+  dplyr::filter(Start >= "2006-08-31")
+
+### Functions ----------------------------------------------------------------
+funCrossValidation <- function(dat, date, nrounds, eta, max_depth, gamma) {
   train <- dat %>%
     dplyr::filter(Start < date) %>%
     dplyr::select(-c(Start, RVDirection)) %>%
@@ -46,8 +51,11 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
     as.matrix()
   
   vali <- dat %>%
-    dplyr::filter(Start > date, Start <= date + lubridate::weeks(1)) %>%
-    dplyr::select(- c(Start, RVDirection)) %>%
+    dplyr::filter(Start > date, Start <= date + lubridate::weeks(1))
+  
+  Start <- vali[,1]
+  
+  vali %<>% dplyr::select(- c(Start, RVDirection)) %>%
     as.matrix()
   
   valiLabel <- dat %>%
@@ -55,7 +63,7 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
     dplyr::filter(Start > date, Start <= date + lubridate::weeks(1)) %>%
     dplyr::select(-Start) %>%
     as.matrix()
-
+  
   mod <- xgboost::xgboost(
     data = train,
     label = trainLabel,
@@ -64,7 +72,7 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
       objective = "binary:logistic",
       eta = eta,
       max_depth = max_depth,
-      gamma = 0
+      gamma = gamma
     ),
     nrounds = nrounds,
     early_stop_round = 20,
@@ -76,13 +84,18 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
   pred <- predict(mod, vali)
   pred <- as.numeric(pred > 0.5)
   
-  oosError <- 1 - mean(pred == valiLabel)
+  print(date)
 
-  return(list("oosError" = oosError))
+  return(
+    list(
+      'Start' = Start,
+      'RVDirectionPred' = pred
+    )
+  )
 }
 
-funRoll <- function(nrounds, eta, max_depth, data) {
-  errorRolling <- data$Start %>%
+funRoll <- function(data, nrounds, eta, max_depth, gamma) {
+  rolling <- data$Start %>%
     lubridate::floor_date(., unit = "week") %>%
     unique() %>%
     .[-(1:10)] %>%
@@ -92,50 +105,23 @@ funRoll <- function(nrounds, eta, max_depth, data) {
       dat = data,
       nrounds = nrounds,
       eta = eta,
-      max_depth = max_depth
-    ) %>%
-    dplyr::mutate(
-      weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
-    ) %>%
-    dplyr::summarise(oosError = sum(weightedOosError))
-  
-  return(
-    list(
-      'nrounds' = nrounds,
-      'eta' = eta,
-      'max_depth' = max_depth,
-      'oosError' = errorRolling$oosError
+      max_depth = max_depth,
+      gamma = gamma
     )
-  )
+  
+  return(rolling)
 }
 
-### Tuning -------------------------------------------------------------------
-hyperParamGrid <- expand.grid(
-  nrounds = seq(100, 500, 100),
-  eta = seq(0.001, 0.1, 0.004),
-  max_depth = seq(1, 15, 2)
+### Predict on test set ------------------------------------------------------
+predDirectionTest <- funRoll(
+  data = dataTest,
+  nrounds = 400,
+  eta = 0.089,
+  max_depth = 1,
+  gamma = 0
 )
 
-mc.cores <- parallel::detectCores()/2
-
-paramTuningXGB <- parallel::mcmapply(
-  funRoll,
-  nrounds = hyperParamGrid$nrounds,
-  eta = hyperParamGrid$eta,
-  max_depth = hyperParamGrid$max_depth,
-  MoreArgs = list(data = indicators),
-  mc.cores = mc.cores
-)
-
-paramTuningXGB <- matrix(
-  unlist(paramTuningXGB),
-  ncol = 4, byrow = TRUE
-)
-colnames(paramTuningXGB) <- c(
-  'nrounds', 'eta', 'max_depth', 'oosError'
-)
-
-save(
-  paramTuningXGB,
-  file = "./Rdata/5DAH/DirectionalVolatilityParamTuningXGB.RData"
+write.csv(
+  predDirectionTest,
+  file = './Data/5DAH/predDirectionTest.csv'
 )

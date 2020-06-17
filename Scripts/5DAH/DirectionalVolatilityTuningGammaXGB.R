@@ -33,7 +33,7 @@ indicators <- read.csv("./Data/SpyCleaned.gz") %>%
 
 ### Functions ----------------------------------------------------------------
 
-funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
+funCrossValidation <- function(dat, date, nrounds, eta, max_depth, gamma=0) {
   train <- dat %>%
     dplyr::filter(Start < date) %>%
     dplyr::select(-c(Start, RVDirection)) %>%
@@ -55,7 +55,7 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
     dplyr::filter(Start > date, Start <= date + lubridate::weeks(1)) %>%
     dplyr::select(-Start) %>%
     as.matrix()
-
+  
   mod <- xgboost::xgboost(
     data = train,
     label = trainLabel,
@@ -64,7 +64,7 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
       objective = "binary:logistic",
       eta = eta,
       max_depth = max_depth,
-      gamma = 0
+      gamma = gamma
     ),
     nrounds = nrounds,
     early_stop_round = 20,
@@ -77,65 +77,50 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth) {
   pred <- as.numeric(pred > 0.5)
   
   oosError <- 1 - mean(pred == valiLabel)
-
+  
+  print(date)
+  
   return(list("oosError" = oosError))
 }
 
-funRoll <- function(nrounds, eta, max_depth, data) {
-  errorRolling <- data$Start %>%
-    lubridate::floor_date(., unit = "week") %>%
-    unique() %>%
-    .[-(1:10)] %>%
-    purrr::map_dfr(
-      .,
-      funCrossValidation,
-      dat = data,
-      nrounds = nrounds,
-      eta = eta,
-      max_depth = max_depth
-    ) %>%
-    dplyr::mutate(
-      weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
-    ) %>%
-    dplyr::summarise(oosError = sum(weightedOosError))
-  
-  return(
-    list(
-      'nrounds' = nrounds,
-      'eta' = eta,
-      'max_depth' = max_depth,
-      'oosError' = errorRolling$oosError
-    )
-  )
-}
-
-### Tuning -------------------------------------------------------------------
-hyperParamGrid <- expand.grid(
-  nrounds = seq(100, 500, 100),
-  eta = seq(0.001, 0.1, 0.004),
-  max_depth = seq(1, 15, 2)
-)
-
+### Tuning of gamma ----------------------------------------------------------
 mc.cores <- parallel::detectCores()/2
 
-paramTuningXGB <- parallel::mcmapply(
-  funRoll,
-  nrounds = hyperParamGrid$nrounds,
-  eta = hyperParamGrid$eta,
-  max_depth = hyperParamGrid$max_depth,
-  MoreArgs = list(data = indicators),
+gammaTuningXGB <- parallel::mclapply(
+  seq(from = 0, to = 3, by = 0.1),
+  FUN = function(gamma, data) {
+    errorRolling <- data$Start %>%
+      lubridate::floor_date(., unit = "week") %>%
+      unique() %>%
+      .[-(1:10)] %>%
+      purrr::map_dfr(
+        .,
+        funCrossValidation,
+        dat = data,
+        nrounds = 400,
+        eta = 0.089,
+        max_depth = 1,
+        gamma = gamma
+      ) %>%
+      dplyr::mutate(
+        weightedOosError = oosError*funWeight(1:dplyr::n(), lambda = 0.01)
+      ) %>%
+      dplyr::summarise(oosError = sum(weightedOosError))
+
+    return(
+      list(
+        'gamma' = gamma,
+        'oosError' = errorRolling$oosError
+      )
+    )
+  },
+  data = indicators,
   mc.cores = mc.cores
 )
 
-paramTuningXGB <- matrix(
-  unlist(paramTuningXGB),
-  ncol = 4, byrow = TRUE
-)
-colnames(paramTuningXGB) <- c(
-  'nrounds', 'eta', 'max_depth', 'oosError'
-)
+gammaTuningXGB %<>% do.call(rbind, .)
 
 save(
-  paramTuningXGB,
-  file = "./Rdata/5DAH/DirectionalVolatilityParamTuningXGB.RData"
+  gammaTuningXGB, 
+  file = './Rdata/5DAH/DirectionalVolatilityGammaTuningXGB.RData'
 )

@@ -502,7 +502,7 @@ funGetDataHAR_v2 <- function(DAH, model = "extended", test = FALSE) {
          "(base, baseLog, extended, extendedLog)")
   }
   if (test) {
-    predDirectionTestXGB <- read.csv(
+    predDirectionTest <- read.csv(
       paste0('./Data/', DAH ,'DAH/predDirectionTest.csv')
     ) %>%
       tibble::as_tibble() %>%
@@ -542,7 +542,7 @@ funGetDataHAR_v2 <- function(DAH, model = "extended", test = FALSE) {
     ) %>%
     {
       if (test) {
-        dplyr::left_join(., predDirectionTestXGB, by = "Start") %>%
+        dplyr::left_join(., predDirectionTest, by = "Start") %>%
           dplyr::mutate(
             RV.Direction = ifelse(
               is.na(RVDirectionPred), RV.Direction, RVDirectionPred

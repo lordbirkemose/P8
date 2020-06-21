@@ -69,8 +69,6 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth, gamma=0) {
   
   oosError <- sqrt(mean((valiLabel - pred)^2))
   
-  print(date)
-  
   return(list("oosError" = oosError))
 }
 

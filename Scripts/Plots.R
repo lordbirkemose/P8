@@ -670,6 +670,111 @@ ggplot(data = dataMAPE) +
 #   height = 230, width = 150, units = "mm"
 # )
 
+### Compare to Benchmark -----------------------------------------------------
+dataRMSEBenchmark <- left_join_multi(
+  dataOLS %>% spread(key = Var, value = Value) %>%
+    mutate(OLS = abs(RV - RVPred)) %>%
+    select(-RV, -RVPred),
+  dataWLS %>% spread(key = Var, value = Value) %>%
+    mutate(WLS = abs(RV - RVPred)) %>%
+    select(-RV, -RVPred),
+  dataRF %>% spread(key = Var, value = Value) %>%
+    mutate(`Random Forest` = abs(RV - RVPred)) %>%
+    select(-RV, -RVPred),
+  dataXGB %>% spread(key = Var, value = Value) %>%
+    mutate(`Extreme Gradient Boosting` = abs(RV - RVPred)) %>%
+    select(-RV, -RVPred),
+  read.csv("./Data/resultsARFIMAdaily.csv") %>%
+    as_tibble() %>%
+    mutate(Start = as.Date(Start)) %>%
+    spread(key = Var, value = Value) %>%
+    mutate(ARFIMA = abs((RV - RVPred)/RV)*100) %>%
+    select(-RV, -RVPred),
+  by = c("Start", "Type")
+) %>%
+  na.omit() %>%
+  mutate(
+    OLS = cumsum(ARFIMA - OLS),
+    WLS = cumsum(ARFIMA - WLS),
+    `Random Forest` = cumsum(ARFIMA - `Random Forest`),
+    `Extreme Gradient Boosting` = cumsum(`Extreme Gradient Boosting`)
+  ) %>%
+  select(-ARFIMA) %>%
+  gather(key = "Var", value = "Value", -c(Start, Type)) %>%
+  filter(Start >= "2006-01-01") %>%
+  mutate(
+    Var = factor(
+      Var,
+      levels = c(
+        'OLS', 'WLS', 'Random Forest', 'Extreme Gradient Boosting'
+      )
+    )
+  )
+
+textData <- tibble::tibble(
+  label = c(rep("In-sample", 4), rep("Out-of-sample", 4)),
+  x = c(rep(as.Date("2006-10-01"), 4), rep(as.Date("2008-11-01"), 4))
+)
+
+labelsData <- c(
+  base = "Base HAR", baseLog = "Base HAR Log",
+  extended = "Extended HAR", extendedLog = "Extended HAR Log"
+)
+
+ggplot(data = dataRMSEBenchmark) +
+  geom_line(aes(x = Start, y = Value, color = Var), size = 0.3) +
+  labs(
+    # title = "OLS",
+    x = "Time",
+    y = "Improvement"
+  ) +
+  scale_colour_manual(
+    name = "",
+    values = scales::hue_pal()(4)
+  ) +
+  scale_x_date(
+    date_labels = "%Y",
+    breaks = pretty(dataRMSEBenchmark$Start, n = 5)
+  ) +
+  scale_y_continuous(
+    expand = expand_scale(mult = c(.15, .1))
+  ) +
+  themeLegend +
+  theme(strip.text.x = element_text(size = 10)) +
+  facet_wrap(
+    ~Type,
+    # scales = "free",
+    scales = "free",
+    labeller = labeller(Type = labelsData),
+    ncol = 1
+  ) +
+  annotate(
+    geom = "segment",
+    y = -Inf, yend = -Inf,
+    x = as.Date("2006-01-01"), xend = as.Date("2009-12-31"),
+    color = "grey",
+    size = 11
+  ) +
+  geom_text(
+    data = textData,
+    mapping = aes(x = x, y = -Inf, label = label),
+    vjust = -.5,
+    size = 3
+  ) +
+  geom_vline(
+    xintercept = as.Date("2007-10-01"),
+    linetype = "longdash",
+    color = "black"
+  )
+# guides(colour = guide_legend(override.aes = list(alpha = 1)))
+
+ggsave(
+  file = './Plots/RMSEBenchmark.eps',
+  device = cairo_ps , dpi = 600,
+  height = 230, width = 150, units = "mm"
+)
+
+
 ### Front page ---------------------------------------------------------------
 dataFrontPage <- left_join_multi(
   dataOLS %>% spread(key = Var, value = Value) %>%

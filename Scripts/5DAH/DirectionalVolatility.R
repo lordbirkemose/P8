@@ -12,7 +12,7 @@ data <- read.csv("./Data/SpyCleaned.gz") %>%
   tibble::as_tibble() %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %$%
   left_join_multi(
-    funDirectionalVolatility(., lag = -1),
+    funDirectionalVolatility(., lag = -5),
     funAverageTrueRange(.),
     funStochasticOscillator(., k = 1),
     funOpenCloseToDailyRange(.),

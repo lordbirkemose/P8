@@ -19,14 +19,14 @@ dataextendedLog <- funGetDataHAR_v2(
 )
 
 database <- dataextended %>%
-  dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
+  dplyr::select(-c(Jump, Pos.Return, Neg.Return, RV.Direction))
 
 databaseLog <- dataextendedLog %>%
-  dplyr::select(-c(Jump.Daily, Pos.Return, Neg.Return, RV.Direction))
+  dplyr::select(-c(Jump, Pos.Return, Neg.Return, RV.Direction))
 
 
 ### Functions ----------------------------------------------------------------
-funRolling <- function(date, dat, method, trainFreq, param, model) {
+funRolling <- function(date, dat, method, param, model) {
   
   train <- dat %>%
     dplyr::filter(
@@ -144,7 +144,7 @@ funRolling <- function(date, dat, method, trainFreq, param, model) {
 }
 
 
-funRollingPred <- function(method, trainFreq) {
+funRollingPred <- function(method) {
   if (!is.element(method, c("OLS","WLS","RF","XGB", "ARFIMA") )) {
     stop("The specified method is not a function option ",
          "(OLS, WLS, RF, XGB)")
@@ -157,11 +157,8 @@ funRollingPred <- function(method, trainFreq) {
   
   data <- list()
   for (model in c("extended", "base", "extendedLog", "baseLog")) {
-    data[[model]] <- dates %>%
-      dplyr::filter(
-        Start >= as.POSIXct("1999-02-04") %m+% lubridate::years(1)
-      ) %>%
-      lubridate::floor_date(.$Start, unit = "week") %>%
+    data[[model]] <- lubridate::floor_date(dates$Start, unit = "week") %>%
+      .[-(1:53)]
       unique() %>% 
       purrr::map_dfr(
         .,
@@ -196,68 +193,68 @@ funRollingPred <- function(method, trainFreq) {
 ### Parameters ---------------------------------------------------------------
 
 paramRFbase <- list(
-  ntree = 512,
-  mtry = 2,
-  maxnodes = 6 
+  ntree = 64,
+  mtry = 1,
+  maxnodes = 130 
 )
 paramRFbaseLog <- list(
-  ntree = 1024,
-  mtry = 2,
-  maxnodes = 10 
+  ntree = 32,
+  mtry = 1,
+  maxnodes = 30 
 )
 paramRFextended <- list(
-  ntree = 128,
+  ntree = 64,
   mtry = 2,
-  maxnodes = 10 
+  maxnodes = 130 
 )
 paramRFextendedLog <- list(
-  ntree = 256,
-  mtry = 3,
-  maxnodes = 10 
+  ntree = 4096,
+  mtry = 4,
+  maxnodes = 130 
 )
 
 paramXGBbase <- list(
-  nrounds = 200,
+  nrounds = 400,
   early_stop_round = 20,
   params = list(
     booster = "gbtree",
     objective = "reg:linear",
-    eta = .093,
+    eta = .1,
     max_depth = 1,
     gamma = 0
   )
 )
 paramXGBbaseLog <- list(
-  nrounds = 200,
+  nrounds = 100,
   early_stop_round = 20,
   params = list(
     booster = "gbtree",
     objective = "reg:linear",
-    eta = .053,
+    eta = .094,
     max_depth = 1,
     gamma = 0
   )
 )
 paramXGBextended <- list(
-  nrounds = 200,
+  nrounds = 400,
   early_stop_round = 20,
   params = list(
     booster = "gbtree",
     objective = "reg:linear",
-    eta = .097,
+    eta = .088,
     max_depth = 1,
     gamma = 0
   )
 )
 paramXGBextendedLog <- list(
-  nrounds = 200,
+  nrounds = 400,
   early_stop_round = 20,
   params = list(
     booster = "gbtree",
     objective = "reg:linear",
-    eta = .061,
-    max_depth = 2,
-    gamma = 0.8
+    eta = .055,
+    max_depth = 1,
+    gamma = 0
   )
 )
 
@@ -265,14 +262,12 @@ paramXGBextendedLog <- list(
 
 methods <- c("ARFIMA", "OLS", "WLS", "RF", "XGB")
 models <- c("extended", "base", "extendedLog", "baseLog")
-trainFreqs <- c("daily", "weekly")
 errorTable <- data.frame()
 errors <- list()
 
 for (method in methods) {
   rollPred <- funRollingPred(
-    method = method,
-    trainFreq = trainFreq
+    method = method
   )
   dataLong <- purrr::map_df(
     models,

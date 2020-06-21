@@ -14,23 +14,23 @@ indicators <- read.csv("./Data/SpyCleaned.gz") %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
   dplyr::filter(Start <= "2007-09-30") %$%
   left_join_multi(
-  funDirectionalVolatility(., lag = -5),
-  funAverageTrueRange(.),
-  funStochasticOscillator(., k = 1),
-  funStochasticOscillator(., k = 10),
-  funOpenCloseToDailyRange(.),
-  funVolatilityRatio(., k = 20),
-  funAbsolutDailyReturn(.),
-  funRealizedVolatilityCyclicty(.),
-  funBollingerBands(.),
-  funFibonacciRatioRV(.),
-  funExpMARV(.),
-  funMovingAverageConvergenceDivergence(.),
-  funRelativeVigorIndex(., k = 10),
-  funRelativeStrengthIndexRV(., k = 10),
-  funCommodityChannelIndex(.),
-  by = "Start"
-) %>%
+    funDirectionalVolatility(., lag = -22),
+    funAverageTrueRange(.),
+    funStochasticOscillator(., k = 1),
+    funStochasticOscillator(., k = 10),
+    funOpenCloseToDailyRange(.),
+    funVolatilityRatio(., k = 20),
+    funAbsolutDailyReturn(.),
+    funRealizedVolatilityCyclicty(.),
+    funBollingerBands(.),
+    funFibonacciRatioRV(.),
+    funExpMARV(.),
+    funMovingAverageConvergenceDivergence(.),
+    funRelativeVigorIndex(., k = 10),
+    funRelativeStrengthIndexRV(., k = 10),
+    funCommodityChannelIndex(.),
+    by = "Start"
+  ) %>%
   stats::na.omit() %>%
   dplyr::mutate(
     RVDirection = as.factor(RVDirection),
@@ -89,40 +89,44 @@ toc <- Sys.time()
 
 (time <- toc - tic)
 
-
-### Random Forest feature selection ------------------------------------------
-set.seed(2020)
-modRFFeatureSelection <- randomForest::randomForest(
-  RVDirection ~ . - Start,
-  data = indicators,
-  ntree = 4096,
-  mtry = 16,
-  maxnodes = 70,
-  importance = TRUE,
-  do.trace = 500
-)
-
-# Selecting features
-importanceFeatureSelection <- randomForest::importance(
-  modRFFeatureSelection
-) %>%
-  data.frame() %>%
-  tibble::rownames_to_column() %>%
-  dplyr::select(
-    Indicator = rowname,
-    MDA = MeanDecreaseAccuracy,
-    MDG = MeanDecreaseGini
-  ) %>%
-  dplyr::arrange(MDA) %>%
-  dplyr::mutate(MDAScore = 1:21) %>%
-  dplyr::arrange(MDG) %>%
-  dplyr::mutate(MDGScore = 1:21) %>%
-  dplyr::mutate(Score = MDAScore + MDGScore) %>%
-  dplyr::arrange(Score) %>%
-  dplyr::mutate(AverageScore = mean(Score))
-
-### Saving data --------------------------------------------------------------
 save(
-  importanceFeatureSelection,
-  file = "./Rdata/22DAH/importanceFeatureSelection.RData"
+  paramTuningPreSelection,
+  file = './Rdata/22DAH/paramTuningPreSelection.RData'
 )
+
+# ### Random Forest feature selection ------------------------------------------
+# set.seed(2020)
+# modRFFeatureSelection <- randomForest::randomForest(
+#   RVDirection ~ . - Start,
+#   data = indicators,
+#   ntree = 4096,
+#   mtry = 16,
+#   maxnodes = 70,
+#   importance = TRUE,
+#   do.trace = 500
+# )
+# 
+# # Selecting features
+# importanceFeatureSelection <- randomForest::importance(
+#   modRFFeatureSelection
+# ) %>%
+#   data.frame() %>%
+#   tibble::rownames_to_column() %>%
+#   dplyr::select(
+#     Indicator = rowname,
+#     MDA = MeanDecreaseAccuracy,
+#     MDG = MeanDecreaseGini
+#   ) %>%
+#   dplyr::arrange(MDA) %>%
+#   dplyr::mutate(MDAScore = 1:21) %>%
+#   dplyr::arrange(MDG) %>%
+#   dplyr::mutate(MDGScore = 1:21) %>%
+#   dplyr::mutate(Score = MDAScore + MDGScore) %>%
+#   dplyr::arrange(Score) %>%
+#   dplyr::mutate(AverageScore = mean(Score))
+# 
+# ### Saving data --------------------------------------------------------------
+# save(
+#   importanceFeatureSelection,
+#   file = "./Rdata/22DAH/importanceFeatureSelection.RData"
+# )

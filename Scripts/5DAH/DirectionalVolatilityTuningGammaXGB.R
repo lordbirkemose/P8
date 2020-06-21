@@ -13,7 +13,7 @@ indicators <- read.csv("./Data/SpyCleaned.gz") %>%
   dplyr::mutate(Start = as.POSIXct(Start, format = "%F %T")) %>%
   dplyr::filter(Start <= "2007-09-30") %$%
   left_join_multi(
-    funDirectionalVolatility(., lag = -1),
+    funDirectionalVolatility(., lag = -5),
     funAverageTrueRange(.),
     funStochasticOscillator(., k = 1),
     funOpenCloseToDailyRange(.),

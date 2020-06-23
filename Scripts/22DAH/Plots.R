@@ -165,10 +165,10 @@ ggplot(data = importanceFeatureSelection) +
   ) +
   themeLegend
 
-ggsave(
-  file = './Plots/22DAH/featureSelection.eps',
-  width =  9, height = 3.5 , device = cairo_ps , dpi = 600
-)
+# ggsave(
+#   file = './Plots/22DAH/featureSelection.eps',
+#   width =  9, height = 3.5 , device = cairo_ps , dpi = 600
+# )
 
 ### MAPE plot ----------------------------------------------------------------
 dataOLS <- read.csv("./Data/22DAH/resultsOLS.csv") %>%
@@ -223,32 +223,33 @@ dataARFIMA <- read.csv("./Data/22DAH/resultsARFIMA.csv") %>%
 
 dataRMSEBenchmark <- left_join_multi(
   dataOLS %>% spread(key = Var, value = Value) %>%
-    mutate(OLS = abs(RV - RVPred)) %>%
+    mutate(OLS = (abs(RV - RVPred))/RV) %>%
     select(-RV, -RVPred),
   dataWLS %>% spread(key = Var, value = Value) %>%
-    mutate(WLS = abs(RV - RVPred)) %>%
+    mutate(WLS = (abs(RV - RVPred))/RV) %>%
     select(-RV, -RVPred),
   dataRF %>% spread(key = Var, value = Value) %>%
-    mutate(`Random Forest` = abs(RV - RVPred)) %>%
+    mutate(`Random Forest` = (abs(RV - RVPred))/RV) %>%
     select(-RV, -RVPred),
   dataXGB %>% spread(key = Var, value = Value) %>%
-    mutate(`Extreme Gradient Boosting` = abs(RV - RVPred)) %>%
+    mutate(`Extreme Gradient Boosting` = (abs(RV - RVPred))/RV) %>%
     select(-RV, -RVPred),
   dataARFIMA %>% spread(key = Var, value = Value) %>%
-    mutate(ARFIMA = abs(RV - RVPred)) %>%
+    mutate(ARFIMA = (abs(RV - RVPred))/RV) %>%
     select(-RV, -RVPred),
   by = c("Start", "Type")
 ) %>%
   na.omit() %>%
+  filter(Start >= "2007-10-01") %>%
+  group_by(Type) %>%
   mutate(
     OLS = cumsum(ARFIMA - OLS),
     WLS = cumsum(ARFIMA - WLS),
     `Random Forest` = cumsum(ARFIMA - `Random Forest`),
-    `Extreme Gradient Boosting` = cumsum(`Extreme Gradient Boosting`)
+    `Extreme Gradient Boosting` = cumsum(ARFIMA - `Extreme Gradient Boosting`)
   ) %>%
   select(-ARFIMA) %>%
   gather(key = "Var", value = "Value", -c(Start, Type)) %>%
-  filter(Start >= "2006-01-01") %>%
   mutate(
     Var = factor(
       Var,
@@ -259,8 +260,8 @@ dataRMSEBenchmark <- left_join_multi(
   )
 
 textData <- tibble::tibble(
-  label = c(rep("In-sample", 4), rep("Out-of-sample", 4)),
-  x = c(rep(as.Date("2006-10-01"), 4), rep(as.Date("2008-11-01"), 4))
+  label = c(rep("Out-of-sample", 4)),
+  x = c(rep(as.Date("2008-11-01"), 4))
 )
 
 labelsData <- c(
@@ -271,13 +272,13 @@ labelsData <- c(
 ggplot(data = dataRMSEBenchmark) +
   geom_line(aes(x = Start, y = Value, color = Var), size = 0.3) +
   labs(
-    # title = "OLS",
+    # caption = 'loss: sqrtDiff',
     x = "Time",
     y = "Improvement"
   ) +
   scale_colour_manual(
     name = "",
-    values = scales::hue_pal()(4)
+    values = colors[1:4]
   ) +
   scale_x_date(
     date_labels = "%Y",
@@ -293,12 +294,12 @@ ggplot(data = dataRMSEBenchmark) +
     # scales = "free",
     scales = "free",
     labeller = labeller(Type = labelsData),
-    ncol = 1
+    ncol = 2
   ) +
   annotate(
     geom = "segment",
     y = -Inf, yend = -Inf,
-    x = as.Date("2006-01-01"), xend = as.Date("2009-12-31"),
+    x = as.Date("2007-10-01"), xend = as.Date("2009-12-31"),
     color = "grey",
     size = 11
   ) +
@@ -307,16 +308,10 @@ ggplot(data = dataRMSEBenchmark) +
     mapping = aes(x = x, y = -Inf, label = label),
     vjust = -.5,
     size = 3
-  ) +
-  geom_vline(
-    xintercept = as.Date("2007-10-01"),
-    linetype = "longdash",
-    color = "black"
   )
-# guides(colour = guide_legend(override.aes = list(alpha = 1)))
 
 ggsave(
-  file = './Plots/22DAH/RMSEBenchmark.eps',
+  file = './Plots/22DAH/APEBenchmark.eps',
   device = cairo_ps , dpi = 600,
-  height = 230, width = 150, units = "mm"
+  width = 9, height = 6.5
 )

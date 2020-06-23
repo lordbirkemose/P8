@@ -119,15 +119,18 @@ predDirectionTest <- funRoll(
   eta = 0.093,
   max_depth = 3,
   gamma = 0.3
-)
+) %>%
+  dplyr::filter(Start >= '2007-10-01')
 
-# write.csv(
-#   predDirectionTest,
-#   file = './Data/22DAH/predDirectionTest.csv'
-# )
+write.csv(
+  predDirectionTest,
+  file = './Data/22DAH/predDirectionTest.csv'
+)
 
 ### Hit rate -----------------------------------------------------------------
 hitRate <- predDirectionTest %>%
   dplyr::mutate(Start = as.POSIXct(Start)) %>%
   dplyr::left_join(dataTest, by = 'Start') %>%
   dplyr::summarise(hitRate = 1 - mean(abs(RVDirection - RVDirectionPred)))
+
+paste('Hit-rate:', hitRate$hitRate)

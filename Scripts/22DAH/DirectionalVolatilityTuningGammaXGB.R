@@ -84,7 +84,7 @@ funCrossValidation <- function(dat, date, nrounds, eta, max_depth, gamma) {
 }
 
 ### Tuning of gamma ----------------------------------------------------------
-mc.cores <- parallel::detectCores()/2
+mc.cores <- 11
 
 gammaTuningXGB <- parallel::mclapply(
   seq(from = 0, to = 3, by = 0.3),
@@ -97,9 +97,9 @@ gammaTuningXGB <- parallel::mclapply(
         .,
         funCrossValidation,
         dat = data,
-        nrounds = 400,
-        eta = 0.089,
-        max_depth = 1,
+        nrounds = 500,
+        eta = 0.093,
+        max_depth = 3,
         gamma = gamma
       ) %>%
       dplyr::mutate(

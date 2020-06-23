@@ -105,14 +105,14 @@ funRoll <- function(nrounds, eta, max_depth, early_stop_round, data) {
 
 ### Grid ---------------------------------------------------------------------
 hyperParamGrid <- expand.grid(
-  nrounds = seq(100, 500, 150),
-  eta = seq(0.001, 0.1, 0.003),
-  max_depth = seq(1, 8, 1),
+  nrounds = seq(200, 500, 150),
+  eta = seq(0.001, 0.1, 0.005),
+  max_depth = seq(1, 4, 1),
   early_stop_round = 20
 )
 
 ### Tuning -------------------------------------------------------------------
-mc.cores <- parallel::detectCores()/2
+mc.cores <- parallel::detectCores() - 5
 
 # Extended
 paramTuningXGB <- parallel::mcmapply(

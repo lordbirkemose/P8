@@ -118,7 +118,7 @@ predDirectionTest <- funRoll(
   nrounds = 500,
   eta = 0.093,
   max_depth = 3,
-  gamma = 0
+  gamma = 0.3
 )
 
 # write.csv(

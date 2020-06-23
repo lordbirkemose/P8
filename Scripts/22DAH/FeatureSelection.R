@@ -50,83 +50,83 @@ indicators <- read.csv("./Data/SpyCleaned.gz") %>%
 #   mtry = 3:12,
 #   maxnodes = seq(10, 100, 10)
 # )
-
-gridPreSelection <- expand.grid(
-  ntree = 2^(10:13),
-  mtry = 10:18,
-  maxnodes = seq(60, 100, 5)
-)
-
-mc.cores <- parallel::detectCores() - 1
-
-tic <- Sys.time()
-paramTuningPreSelection <- parallel::mcmapply(
-  function(ntree, mtry, maxnodes) {
-    set.seed(2020)
-    mod <- randomForest::randomForest(
-      RVDirection ~ . -Start,
-      data = indicators,
-      ntree = ntree,
-      mtry = mtry,
-      maxnodes = maxnodes
-    )
-    
-    return(
-      list(
-        'ntree' = ntree,
-        'mtry' = mtry,
-        'maxnodes' = maxnodes,
-        'oobError' = mean(mod$err.rate[,1])
-      )
-    )
-  },
-  ntree = gridPreSelection$ntree,
-  mtry = gridPreSelection$mtry,
-  maxnodes = gridPreSelection$maxnodes,
-  mc.cores = mc.cores
-)
-toc <- Sys.time()
-
-(time <- toc - tic)
-
-save(
-  paramTuningPreSelection,
-  file = './Rdata/22DAH/paramTuningPreSelection.RData'
-)
-
-# ### Random Forest feature selection ------------------------------------------
-# set.seed(2020)
-# modRFFeatureSelection <- randomForest::randomForest(
-#   RVDirection ~ . - Start,
-#   data = indicators,
-#   ntree = 4096,
-#   mtry = 16,
-#   maxnodes = 70,
-#   importance = TRUE,
-#   do.trace = 500
+# 
+# gridPreSelection <- expand.grid(
+#   ntree = 2^(10:13),
+#   mtry = 10:18,
+#   maxnodes = seq(60, 100, 5)
 # )
 # 
-# # Selecting features
-# importanceFeatureSelection <- randomForest::importance(
-#   modRFFeatureSelection
-# ) %>%
-#   data.frame() %>%
-#   tibble::rownames_to_column() %>%
-#   dplyr::select(
-#     Indicator = rowname,
-#     MDA = MeanDecreaseAccuracy,
-#     MDG = MeanDecreaseGini
-#   ) %>%
-#   dplyr::arrange(MDA) %>%
-#   dplyr::mutate(MDAScore = 1:21) %>%
-#   dplyr::arrange(MDG) %>%
-#   dplyr::mutate(MDGScore = 1:21) %>%
-#   dplyr::mutate(Score = MDAScore + MDGScore) %>%
-#   dplyr::arrange(Score) %>%
-#   dplyr::mutate(AverageScore = mean(Score))
+# mc.cores <- parallel::detectCores() - 1
 # 
-# ### Saving data --------------------------------------------------------------
+# tic <- Sys.time()
+# paramTuningPreSelection <- parallel::mcmapply(
+#   function(ntree, mtry, maxnodes) {
+#     set.seed(2020)
+#     mod <- randomForest::randomForest(
+#       RVDirection ~ . -Start,
+#       data = indicators,
+#       ntree = ntree,
+#       mtry = mtry,
+#       maxnodes = maxnodes
+#     )
+#     
+#     return(
+#       list(
+#         'ntree' = ntree,
+#         'mtry' = mtry,
+#         'maxnodes' = maxnodes,
+#         'oobError' = mean(mod$err.rate[,1])
+#       )
+#     )
+#   },
+#   ntree = gridPreSelection$ntree,
+#   mtry = gridPreSelection$mtry,
+#   maxnodes = gridPreSelection$maxnodes,
+#   mc.cores = mc.cores
+# )
+# toc <- Sys.time()
+# 
+# (time <- toc - tic)
+# 
 # save(
-#   importanceFeatureSelection,
-#   file = "./Rdata/22DAH/importanceFeatureSelection.RData"
+#   paramTuningPreSelection,
+#   file = './Rdata/22DAH/paramTuningPreSelection.RData'
 # )
+
+### Random Forest feature selection ------------------------------------------
+set.seed(2020)
+modRFFeatureSelection <- randomForest::randomForest(
+  RVDirection ~ . - Start,
+  data = indicators,
+  ntree = 1024,
+  mtry = 18,
+  maxnodes = 70,
+  importance = TRUE,
+  do.trace = 500
+)
+
+# Selecting features
+importanceFeatureSelection <- randomForest::importance(
+  modRFFeatureSelection
+) %>%
+  data.frame() %>%
+  tibble::rownames_to_column() %>%
+  dplyr::select(
+    Indicator = rowname,
+    MDA = MeanDecreaseAccuracy,
+    MDG = MeanDecreaseGini
+  ) %>%
+  dplyr::arrange(MDA) %>%
+  dplyr::mutate(MDAScore = 1:21) %>%
+  dplyr::arrange(MDG) %>%
+  dplyr::mutate(MDGScore = 1:21) %>%
+  dplyr::mutate(Score = MDAScore + MDGScore) %>%
+  dplyr::arrange(Score) %>%
+  dplyr::mutate(AverageScore = mean(Score))
+
+### Saving data --------------------------------------------------------------
+save(
+  importanceFeatureSelection,
+  file = "./Rdata/22DAH/importanceFeatureSelection.RData"
+)
